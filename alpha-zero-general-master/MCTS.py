@@ -41,6 +41,7 @@ class MCTS():
                    proportional to Nsa[(s,a)]**(1./temp)
         """
         for i in range(self.args.numMCTSSims):
+            increment_mcts_sim()  # Count only top-level simulations
             self.search(canonicalBoard)
 
         s = self.game.stringRepresentation(canonicalBoard)
@@ -77,7 +78,6 @@ class MCTS():
         Returns:
             v: the negative of the value of the current canonicalBoard
         """
-        increment_mcts_sim()
 
         s = self.game.stringRepresentation(canonicalBoard)
 
