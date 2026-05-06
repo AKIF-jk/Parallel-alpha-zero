@@ -1,0 +1,41 @@
+# Python
+*.py[cod]
+*$py.class
+*.so
+__pycache__/
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Checkpoints & Models
+temp/
+checkpoint*/
+*.pth.tar
+*.examples
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# C++ build
+build/
+*.o
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Google Colab
+.config/
+drive/

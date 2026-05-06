@@ -1,0 +1,71 @@
+# Python
+*.py[cod]
+*$py.class
+*.so
+__pycache__/
+*.egg-info/
+dist/
+build/
+eggs/
+*.egg
+
+# Virtual environments
+venv/
+env/
+.venv/
+ENV/
+
+# Checkpoints & Models (AlphaZero)
+temp/
+checkpoint*/
+*.pth.tar
+*.examples
+models/
+weights/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# C++ build
+*.o
+*.a
+*.so
+build/
+cmake-build-*/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Google Colab
+.config/
+drive/
+
+# Logs
+*.log
+
+# Benchmark results (optional - remove if you want to keep)
+benchmarks/results/*.json
+benchmarks/scripts/results/*.json
+
+# AlphaZero General - both versions
+alpha-zero-general-cpp/temp/
+alpha-zero-general-cpp/build/
+alpha-zero-general-cpp/__pycache__/
+alpha-zero-general-cpp/othello_cpp*.so
+alpha-zero-general-cpp/*/*.pyc
+alpha-zero-general-cpp/venv/
+alpha-zero-general-cpp/.ipynb_checkpoints/
+
+alpha-zero-general-master/temp/
+alpha-zero-general-master/__pycache__/
+alpha-zero-general-master/venv/
+alpha-zero-general-master/.ipynb_checkpoints/
