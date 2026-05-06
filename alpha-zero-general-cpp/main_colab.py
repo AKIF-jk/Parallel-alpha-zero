@@ -22,9 +22,9 @@ args = dotdict({
     'arenaCompare': 10,
     'cpuct': 1,
 
-    'checkpoint': '/content/drive/MyDrive/alpha_zero_checkpoints/',
+    'checkpoint': './checkpoint/',
     'load_model': False,
-    'load_folder_file': ('/dev/models/8x100x50','best.pth.tar'),
+    'load_folder_file': ('./checkpoint','best.pth.tar'),
     'numItersForTrainExamplesHistory': 20,
 
     'gpu': True,
@@ -38,8 +38,10 @@ def setup_google_drive():
         drive.mount('/content/drive')
         os.makedirs(args.checkpoint, exist_ok=True)
         log.info("Google Drive mounted at %s", args.checkpoint)
-    except ImportError:
-        log.warning("Not running in Google Colab")
+    except Exception:
+        log.warning("Not running in Google Colab - using local checkpoint directory")
+        args.checkpoint = './checkpoint/'
+        os.makedirs(args.checkpoint, exist_ok=True)
 
 
 def main():
