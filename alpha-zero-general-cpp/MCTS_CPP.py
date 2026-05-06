@@ -189,14 +189,16 @@ class ParallelMCTS_CPP:
 
             results = [f.result() for f in futures]
 
-            counts = np.zeros(36, dtype=np.float64)
+            action_size = self.game.getActionSize()  # 37 for Othello (36 + pass)
+            counts = np.zeros(action_size, dtype=np.float64)
             for r in results:
-                counts += np.array(r[:36], dtype=np.float64)
+                for i in range(min(len(r), action_size)):
+                    counts[i] += r[i]
 
             if temp == 0:
                 bestAs = np.argwhere(counts == np.max(counts)).flatten()
                 bestA = np.random.choice(bestAs)
-                probs = np.zeros(36)
+                probs = np.zeros(action_size)
                 probs[bestA] = 1.0
                 return probs
 
