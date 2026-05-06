@@ -1,12 +1,17 @@
 import sys
 import os
+import argparse
 
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from google.colab import drive
-drive.mount('/content/drive')
-CHECKPOINT_DIR = "/content/drive/MyDrive/alphazero_project/checkpoints"
+# Parse command line arguments
+parser = argparse.ArgumentParser()
+parser.add_argument('--checkpoint_dir', type=str, default='/content/drive/MyDrive/alphazero_project/checkpoints',
+                    help='Checkpoint directory path')
+args_cli = parser.parse_args()
+
+CHECKPOINT_DIR = args_cli.checkpoint_dir
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 
 import logging
