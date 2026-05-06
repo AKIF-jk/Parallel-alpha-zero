@@ -185,13 +185,16 @@ class NNetGPUWrapper(NeuralNet):
         
         state_dict = checkpoint['state_dict']
         
+        print(f"Loading checkpoint with keys: {list(state_dict.keys())[:5]}...")
+        
         if isinstance(self.nnet, nn.DataParallel):
             new_state_dict = {}
             for k, v in state_dict.items():
                 if k.startswith('module.'):
-                    new_state_dict[k] = v
+                    new_state_dict[k[7:]] = v
                 else:
-                    new_state_dict['module.' + k] = v
-            self.nnet.load_state_dict(new_state_dict)
+                    new_state_dict[k] = v
+            self.nnet.module.load_state_dict(new_state_dict)
+            print(f"Loaded into DataParallel module, keys: {list(self.nnet.module.state_dict().keys())[:5]}...")
         else:
             self.nnet.load_state_dict(state_dict)
