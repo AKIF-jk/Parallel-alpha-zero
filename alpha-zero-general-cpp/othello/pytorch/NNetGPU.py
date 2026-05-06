@@ -188,19 +188,14 @@ class NNetGPUWrapper(NeuralNet):
         
         state_dict = checkpoint['state_dict']
         
+        new_state_dict = {}
+        for k, v in state_dict.items():
+            if k.startswith('module.'):
+                new_state_dict[k[7:]] = v
+            else:
+                new_state_dict[k] = v
+        
         if self.use_gpu and isinstance(self.nnet, nn.DataParallel):
-            new_state_dict = {}
-            for k, v in state_dict.items():
-                if not k.startswith('module.'):
-                    new_state_dict['module.' + k] = v
-                else:
-                    new_state_dict[k] = v
             self.nnet.module.load_state_dict(new_state_dict)
         else:
-            new_state_dict = {}
-            for k, v in state_dict.items():
-                if k.startswith('module.'):
-                    new_state_dict[k[7:]] = v
-                else:
-                    new_state_dict[k] = v
             self.nnet.load_state_dict(new_state_dict)
