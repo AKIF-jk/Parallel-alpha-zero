@@ -124,48 +124,56 @@ class MCTS_CPP:
         return -v_scalar
 
 
-def _run_search_thread(game, nnet, args, num_sims):
+def _run_search_thread(game, nnet, args, num_sims, thread_id):
     """Run MCTS simulations in a single thread."""
-    mcts = othello_cpp.BatchedMCTS()
-    mcts.set_root_board([0] * 36, 1)
+    import logging
+    log = logging.getLogger(__name__)
+    log.info(f"Thread {thread_id} starting with {num_sims} simulations")
+    try:
+        mcts = othello_cpp.BatchedMCTS()
+        mcts.set_root_board([0] * 36, 1)
 
-    for _ in range(num_sims):
-        leaf_idx, state_tensor, legal_moves, is_terminal, val, hit, tt_p, tt_v = \
-            mcts.select_and_get_leaf()
+        for s in range(num_sims):
+            leaf_idx, state_tensor, legal_moves, is_terminal, val, hit, tt_p, tt_v = \
+                mcts.select_and_get_leaf()
 
-        if is_terminal:
-            mcts.expand_and_backup(leaf_idx, legal_moves, [0.0] * 36, float(val))
-            continue
+            if is_terminal:
+                mcts.expand_and_backup(leaf_idx, legal_moves, [0.0] * 36, float(val))
+                continue
 
-        if hit:
-            mcts.expand_and_backup(leaf_idx, legal_moves, list(tt_p), float(tt_v))
-            continue
+            if hit:
+                mcts.expand_and_backup(leaf_idx, legal_moves, list(tt_p), float(tt_v))
+                continue
 
-        action_size = 36
-        valids = np.zeros(action_size)
-        for m in legal_moves:
-            if 0 <= m < action_size:
-                valids[m] = 1
+            action_size = 36
+            valids = np.zeros(action_size)
+            for m in legal_moves:
+                if 0 <= m < action_size:
+                    valids[m] = 1
 
-        state_np = np.array(state_tensor).reshape(2, 6, 6)
-        cp = mcts.get_current_player()
-        if cp == 1:
-            canonical = state_np[0] - state_np[1]
-        else:
-            canonical = state_np[1] - state_np[0]
+            state_np = np.array(state_tensor).reshape(2, 6, 6)
+            cp = mcts.get_current_player()
+            if cp == 1:
+                canonical = state_np[0] - state_np[1]
+            else:
+                canonical = state_np[1] - state_np[0]
 
-        pi, v = nnet.predict(canonical)
-        pi = pi * valids
-        sum_pi = np.sum(pi)
-        if sum_pi > 0:
-            pi /= sum_pi
-        else:
-            pi = valids / np.sum(valids)
+            pi, v = nnet.predict(canonical)
+            pi = pi * valids
+            sum_pi = np.sum(pi)
+            if sum_pi > 0:
+                pi /= sum_pi
+            else:
+                pi = valids / np.sum(valids)
 
-        v_scalar = float(v) if v.ndim == 0 else float(v[0])
-        mcts.expand_and_backup(leaf_idx, legal_moves, pi.tolist(), v_scalar)
+            v_scalar = float(v) if v.ndim == 0 else float(v[0])
+            mcts.expand_and_backup(leaf_idx, legal_moves, pi.tolist(), v_scalar)
 
-    return mcts.get_root_visit_counts()
+        log.info(f"Thread {thread_id} completed")
+        return mcts.get_root_visit_counts()
+    except Exception as e:
+        log.error(f"Thread {thread_id} failed: {e}")
+        raise
 
 
 class ParallelMCTS_CPP:
@@ -179,15 +187,24 @@ class ParallelMCTS_CPP:
         self._executor = ThreadPoolExecutor(max_workers=NUM_WORKERS)
 
     def getActionProb(self, canonicalBoard, temp=1):
+        import logging
+        log = logging.getLogger(__name__)
         with self._lock:
             num_sims_per_worker = max(1, self.args.numMCTSSims // NUM_WORKERS)
+            log.info(f"Starting {NUM_WORKERS} threads with {num_sims_per_worker} sims each")
 
             futures = [
-                self._executor.submit(_run_search_thread, self.game, self.nnet, self.args, num_sims_per_worker)
-                for _ in range(NUM_WORKERS)
+                self._executor.submit(_run_search_thread, self.game, self.nnet, self.args, num_sims_per_worker, i)
+                for i in range(NUM_WORKERS)
             ]
 
-            results = [f.result() for f in futures]
+            results = []
+            for i, f in enumerate(futures):
+                try:
+                    results.append(f.result(timeout=30))
+                except Exception as e:
+                    log.error(f"Future {i} failed: {e}")
+                    results.append([0] * 36)
 
             action_size = self.game.getActionSize()  # 37 for Othello (36 + pass)
             counts = np.zeros(action_size, dtype=np.float64)

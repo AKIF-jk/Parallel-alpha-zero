@@ -9,7 +9,7 @@ import numpy as np
 from tqdm import tqdm
 
 from Arena import Arena
-from MCTS_CPP import MCTS_CPP as MCTS, ParallelMCTS_CPP
+from MCTS_CPP import MCTS_CPP as MCTS
 
 log = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ class Coach():
         self.nnet = nnet
         self.pnet = self.nnet.__class__(self.game)  # the competitor network
         self.args = args
-        self.mcts = ParallelMCTS_CPP(self.game, self.nnet, self.args)
+        self.mcts = MCTS(self.game, self.nnet, self.args)
         self.trainExamplesHistory = []  # history of examples from args.numItersForTrainExamplesHistory latest iterations
         self.skipFirstSelfPlay = False  # can be overriden in loadTrainExamples()
 
@@ -85,7 +85,7 @@ class Coach():
                 iterationTrainExamples = deque([], maxlen=self.args.maxlenOfQueue)
 
                 for _ in tqdm(range(self.args.numEps), desc="Self Play"):
-                    self.mcts = ParallelMCTS_CPP(self.game, self.nnet, self.args)  # reset search tree
+                    self.mcts = MCTS(self.game, self.nnet, self.args)  # reset search tree
                     iterationTrainExamples += self.executeEpisode()
 
                 # save the iteration examples to the history 
@@ -111,7 +111,7 @@ class Coach():
             pmcts = MCTS(self.game, self.pnet, self.args)
 
             self.nnet.train(trainExamples)
-            nmcts = ParallelMCTS_CPP(self.game, self.nnet, self.args)
+            nmcts = MCTS(self.game, self.nnet, self.args)
 
             log.info('PITTING AGAINST PREVIOUS VERSION')
             arena = Arena(lambda x: np.argmax(pmcts.getActionProb(x, temp=0)),
