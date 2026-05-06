@@ -34,7 +34,7 @@ build/
 
 # Jupyter
 .ipynb_checkpoints/
-*.ipynb
+
 
 # Google Colab
 .config/
