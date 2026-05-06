@@ -13,22 +13,23 @@ log = logging.getLogger(__name__)
 coloredlogs.install(level='INFO')
 
 args = dotdict({
-    'numIters': 10,
-    'numEps': 25,
-    'tempThreshold': 15,
-    'updateThreshold': 0.6,
-    'maxlenOfQueue': 200000,
-    'numMCTSSims': 25,
-    'arenaCompare': 10,
-    'cpuct': 1,
+    'numIters': 30,
+    'numEps': 100,
+    'tempThreshold': 30,
+    'updateThreshold': 0.55,
+    'maxlenOfQueue': 300000,
+    'numMCTSSims': 50,
+    'arenaCompare': 20,
+    'cpuct': 1.5,
 
     'checkpoint': './checkpoint/',
     'load_model': False,
     'load_folder_file': ('./checkpoint','best.pth.tar'),
-    'numItersForTrainExamplesHistory': 20,
+    'numItersForTrainExamplesHistory': 25,
 
     'gpu': True,
-    'batch_size': 256,
+    'batch_size': 512,
+    'lr': 0.001,
 })
 
 
