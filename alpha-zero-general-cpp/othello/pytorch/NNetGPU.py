@@ -194,8 +194,8 @@ class NNetGPUWrapper(NeuralNet):
                 if k.startswith('module.'):
                     new_state_dict[k[7:]] = v
                 else:
-                    new_state_dict[k] = v
-            self.nnet.module.load_state_dict(new_state_dict)
+                    new_state_dict['module.' + k] = v
+            self.nnet.load_state_dict(new_state_dict)
         else:
             new_state_dict = {}
             for k, v in state_dict.items():
