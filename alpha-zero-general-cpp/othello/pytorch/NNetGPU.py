@@ -75,9 +75,6 @@ class NNetGPUWrapper(NeuralNet):
 
     def train(self, examples):
         optimizer = optim.Adam(self.nnet.parameters(), lr=args.lr)
-        
-        if self.use_gpu:
-            self.nnet = nn.DataParallel(self.nnet)
 
         for epoch in range(args.epochs):
             print('EPOCH ::: ' + str(epoch + 1))
@@ -188,19 +185,13 @@ class NNetGPUWrapper(NeuralNet):
         
         state_dict = checkpoint['state_dict']
         
-        if self.use_gpu and isinstance(self.nnet, nn.DataParallel):
+        if isinstance(self.nnet, nn.DataParallel):
             new_state_dict = {}
             for k, v in state_dict.items():
                 if k.startswith('module.'):
-                    new_state_dict[k[7:]] = v
+                    new_state_dict[k] = v
                 else:
                     new_state_dict['module.' + k] = v
             self.nnet.load_state_dict(new_state_dict)
         else:
-            new_state_dict = {}
-            for k, v in state_dict.items():
-                if k.startswith('module.'):
-                    new_state_dict[k[7:]] = v
-                else:
-                    new_state_dict[k] = v
-            self.nnet.load_state_dict(new_state_dict)
+            self.nnet.load_state_dict(state_dict)
