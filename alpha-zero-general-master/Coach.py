@@ -1,6 +1,8 @@
 import logging
 import os
 import sys
+import time
+import resource
 from collections import deque
 from pickle import Pickler, Unpickler
 from random import shuffle
@@ -12,6 +14,31 @@ from Arena import Arena
 from MCTS import MCTS
 
 log = logging.getLogger(__name__)
+
+# Import profiler - will be None if not available
+try:
+    from profiler import (
+        start_gpu_monitor, stop_gpu_monitor, reset_mcts_sim,
+        get_mcts_sim_count, start_phase, end_phase, get_peak_ram_mb,
+        iteration_metrics_list, mcts_sims_per_sec_list, peak_ram_list,
+        gpu_utilization_list, win_rate_vs_greedy
+    )
+    PROFILER_AVAILABLE = True
+except ImportError:
+    PROFILER_AVAILABLE = False
+    # Dummy functions if profiler not available
+    def start_gpu_monitor(): pass
+    def stop_gpu_monitor(): pass
+    def reset_mcts_sim(): pass
+    def get_mcts_sim_count(): return 0
+    def start_phase(name): pass
+    def end_phase(name): return 0.0
+    def get_peak_ram_mb(): return 0.0
+    iteration_metrics_list = []
+    mcts_sims_per_sec_list = []
+    peak_ram_list = []
+    gpu_utilization_list = []
+    win_rate_vs_greedy = 0.0
 
 
 class Coach():
@@ -80,6 +107,14 @@ class Coach():
         for i in range(1, self.args.numIters + 1):
             # bookkeeping
             log.info(f'Starting Iter #{i} ...')
+
+            # Start profiling for this iteration
+            if PROFILER_AVAILABLE:
+                reset_mcts_sim()
+                start_gpu_monitor()
+                start_phase("self_play")
+                iteration_start_ram = get_peak_ram_mb()
+
             # examples of the iteration
             if not self.skipFirstSelfPlay or i > 1:
                 iterationTrainExamples = deque([], maxlen=self.args.maxlenOfQueue)
@@ -88,15 +123,21 @@ class Coach():
                     self.mcts = MCTS(self.game, self.nnet, self.args)  # reset search tree
                     iterationTrainExamples += self.executeEpisode()
 
-                # save the iteration examples to the history 
+                # save the iteration examples to the history
                 self.trainExamplesHistory.append(iterationTrainExamples)
+
+            # End self-play phase timing
+            if PROFILER_AVAILABLE:
+                self_play_sec = end_phase("self_play")
+                peak_ram = max(iteration_start_ram, get_peak_ram_mb())
+                start_phase("train")
 
             if len(self.trainExamplesHistory) > self.args.numItersForTrainExamplesHistory:
                 log.warning(
                     f"Removing the oldest entry in trainExamples. len(trainExamplesHistory) = {len(self.trainExamplesHistory)}")
                 self.trainExamplesHistory.pop(0)
             # backup history to a file
-            # NB! the examples were collected using the model from the previous iteration, so (i-1)  
+            # NB! the examples were collected using the model from the previous iteration, so (i-1)
             self.saveTrainExamples(i - 1)
 
             # shuffle examples before training
@@ -113,6 +154,12 @@ class Coach():
             self.nnet.train(trainExamples)
             nmcts = MCTS(self.game, self.nnet, self.args)
 
+            # End training phase timing
+            if PROFILER_AVAILABLE:
+                train_sec = end_phase("train")
+                peak_ram = max(peak_ram, get_peak_ram_mb())
+                start_phase("arena")
+
             log.info('PITTING AGAINST PREVIOUS VERSION')
             arena = Arena(lambda x: np.argmax(pmcts.getActionProb(x, temp=0)),
                           lambda x: np.argmax(nmcts.getActionProb(x, temp=0)), self.game)
@@ -126,6 +173,41 @@ class Coach():
                 log.info('ACCEPTING NEW MODEL')
                 self.nnet.save_checkpoint(folder=self.args.checkpoint, filename=self.getCheckpointFile(i))
                 self.nnet.save_checkpoint(folder=self.args.checkpoint, filename='best.pth.tar')
+
+            # End arena phase timing and record metrics
+            if PROFILER_AVAILABLE:
+                arena_sec = end_phase("arena")
+                peak_ram = max(peak_ram, get_peak_ram_mb())
+                stop_gpu_monitor()
+
+                # Calculate MCTS sims per second
+                total_mcts = get_mcts_sim_count()
+                mcts_sps = total_mcts / self_play_sec if self_play_sec > 0 else 0.0
+
+                # Record iteration metrics
+                iteration_metrics_list.append({
+                    "self_play_sec": self_play_sec,
+                    "train_sec": train_sec,
+                    "arena_sec": arena_sec
+                })
+                mcts_sims_per_sec_list.append(mcts_sps)
+                peak_ram_list.append(peak_ram)
+
+            # Win rate vs greedy after iteration 5
+            if i == 5 and PROFILER_AVAILABLE:
+                log.info("Running win rate vs greedy baseline...")
+                from othello.OthelloPlayers import GreedyOthelloPlayer
+                greedy_player = GreedyOthelloPlayer(self.game)
+
+                def nnet_player(canonicalBoard):
+                    mcts = MCTS(self.game, self.nnet, self.args)
+                    return np.argmax(mcts.getActionProb(canonicalBoard, temp=0))
+
+                arena_greedy = Arena(nnet_player, greedy_player.play, self.game)
+                nwins, gwins, draws = arena_greedy.playGames(20)
+                import profiler
+                profiler.win_rate_vs_greedy = nwins / 20
+                log.info(f"Win rate vs greedy: {profiler.win_rate_vs_greedy}")
 
     def getCheckpointFile(self, iteration):
         return 'checkpoint_' + str(iteration) + '.pth.tar'

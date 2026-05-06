@@ -5,6 +5,12 @@ import numpy as np
 
 EPS = 1e-8
 
+try:
+    from profiler import increment_mcts_sim
+except ImportError:
+    def increment_mcts_sim():
+        pass
+
 log = logging.getLogger(__name__)
 
 
@@ -71,6 +77,7 @@ class MCTS():
         Returns:
             v: the negative of the value of the current canonicalBoard
         """
+        increment_mcts_sim()
 
         s = self.game.stringRepresentation(canonicalBoard)
 

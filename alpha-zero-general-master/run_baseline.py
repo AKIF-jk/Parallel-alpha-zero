@@ -1,0 +1,56 @@
+import sys
+import os
+
+# Add parent directory to path for imports
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from google.colab import drive
+drive.mount('/content/drive')
+CHECKPOINT_DIR = "/content/drive/MyDrive/alphazero_project/checkpoints"
+os.makedirs(CHECKPOINT_DIR, exist_ok=True)
+
+import logging
+import coloredlogs
+from Coach import Coach
+from othello.OthelloGame import OthelloGame as Game
+from othello.pytorch.NNet import NNetWrapper as nn
+from utils import dotdict
+
+log = logging.getLogger(__name__)
+coloredlogs.install(level='INFO')
+
+args = dotdict({
+    'numIters': 5,
+    'numEps': 20,
+    'tempThreshold': 15,
+    'updateThreshold': 0.55,
+    'maxlenOfQueue': 200000,
+    'numMCTSSims': 25,
+    'arenaCompare': 20,
+    'cpuct': 1,
+    'checkpoint': CHECKPOINT_DIR,
+    'load_model': False,
+    'load_folder_file': (CHECKPOINT_DIR, 'best.pth.tar'),
+    'numItersForTrainExamplesHistory': 20,
+})
+
+def main():
+    log.info('Loading %s...', Game.__name__)
+    g = Game(6)
+
+    log.info('Loading %s...', nn.__name__)
+    nnet = nn(g)
+
+    log.info('Loading the Coach...')
+    c = Coach(g, nnet, args)
+
+    log.info('Starting the learning process')
+    c.learn()
+
+    # Save metrics
+    from profiler import save_metrics
+    metrics = save_metrics(CHECKPOINT_DIR)
+    log.info('Baseline metrics saved: %s', metrics)
+
+if __name__ == "__main__":
+    main()
