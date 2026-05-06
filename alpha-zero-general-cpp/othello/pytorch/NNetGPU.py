@@ -123,7 +123,7 @@ class NNetGPUWrapper(NeuralNet):
         
         self.nnet.eval()
         with torch.no_grad():
-            pi, v = self.nnet(batch)
+            pi, v = self.nnet(board)
 
         return torch.exp(pi).cpu().numpy()[0], v.cpu().numpy()[0]
 
