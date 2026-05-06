@@ -15,14 +15,13 @@ CHECKPOINT_DIR = args_cli.checkpoint_dir
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 
 import logging
-import coloredlogs
 from Coach import Coach
 from othello.OthelloGame import OthelloGame as Game
 from othello.pytorch.NNet import NNetWrapper as nn
 from utils import dotdict
 
 log = logging.getLogger(__name__)
-coloredlogs.install(level='INFO')
+logging.basicConfig(level=logging.INFO)
 
 args = dotdict({
     'numIters': 5,
