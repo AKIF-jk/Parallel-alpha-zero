@@ -186,7 +186,21 @@ class NNetGPUWrapper(NeuralNet):
         map_location = 'cuda:0' if self.use_gpu else 'cpu'
         checkpoint = torch.load(filepath, map_location=map_location)
         
+        state_dict = checkpoint['state_dict']
+        
         if self.use_gpu and isinstance(self.nnet, nn.DataParallel):
-            self.nnet.module.load_state_dict(checkpoint['state_dict'])
+            new_state_dict = {}
+            for k, v in state_dict.items():
+                if not k.startswith('module.'):
+                    new_state_dict['module.' + k] = v
+                else:
+                    new_state_dict[k] = v
+            self.nnet.module.load_state_dict(new_state_dict)
         else:
-            self.nnet.load_state_dict(checkpoint['state_dict'])
+            new_state_dict = {}
+            for k, v in state_dict.items():
+                if k.startswith('module.'):
+                    new_state_dict[k[7:]] = v
+                else:
+                    new_state_dict[k] = v
+            self.nnet.load_state_dict(new_state_dict)
