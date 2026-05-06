@@ -2,14 +2,20 @@
 C++-backed MCTS implementation. Drop-in replacement for MCTS.py.
 Uses the C++ MCTS tree (via pybind11) for fast tree traversal while
 calling the Python neural network for policy/value predictions.
+
+Parallel version uses threading for concurrent simulations.
 """
 import logging
 import math
+from concurrent.futures import ThreadPoolExecutor
+import threading
 
 import numpy as np
 import othello_cpp
 
 log = logging.getLogger(__name__)
+
+NUM_WORKERS = 8
 
 
 class MCTS_CPP:
@@ -116,3 +122,99 @@ class MCTS_CPP:
         v_scalar = float(v) if v.ndim == 0 else float(v[0])
         self.cpp_mcts.expand_and_backup(leaf_idx, legal_moves, pi.tolist(), v_scalar)
         return -v_scalar
+
+
+def _run_search_thread(game, nnet, args, num_sims):
+    """Run MCTS simulations in a single thread."""
+    mcts = othello_cpp.BatchedMCTS()
+    mcts.set_root_board([0] * 36, 1)
+
+    for _ in range(num_sims):
+        leaf_idx, state_tensor, legal_moves, is_terminal, val, hit, tt_p, tt_v = \
+            mcts.select_and_get_leaf()
+
+        if is_terminal:
+            mcts.expand_and_backup(leaf_idx, legal_moves, [0.0] * 36, float(val))
+            continue
+
+        if hit:
+            mcts.expand_and_backup(leaf_idx, legal_moves, list(tt_p), float(tt_v))
+            continue
+
+        action_size = 36
+        valids = np.zeros(action_size)
+        for m in legal_moves:
+            if 0 <= m < action_size:
+                valids[m] = 1
+
+        state_np = np.array(state_tensor).reshape(2, 6, 6)
+        cp = mcts.get_current_player()
+        if cp == 1:
+            canonical = state_np[0] - state_np[1]
+        else:
+            canonical = state_np[1] - state_np[0]
+
+        pi, v = nnet.predict(canonical)
+        pi = pi * valids
+        sum_pi = np.sum(pi)
+        if sum_pi > 0:
+            pi /= sum_pi
+        else:
+            pi = valids / np.sum(valids)
+
+        v_scalar = float(v) if v.ndim == 0 else float(v[0])
+        mcts.expand_and_backup(leaf_idx, legal_moves, pi.tolist(), v_scalar)
+
+    return mcts.get_root_visit_counts()
+
+
+class ParallelMCTS_CPP:
+    """Parallel C++-backed MCTS using threads for concurrent simulations."""
+
+    def __init__(self, game, nnet, args):
+        self.game = game
+        self.nnet = nnet
+        self.args = args
+        self._lock = threading.Lock()
+        self._executor = ThreadPoolExecutor(max_workers=NUM_WORKERS)
+
+    def getActionProb(self, canonicalBoard, temp=1):
+        with self._lock:
+            num_sims_per_worker = max(1, self.args.numMCTSSims // NUM_WORKERS)
+
+            futures = [
+                self._executor.submit(_run_search_thread, self.game, self.nnet, self.args, num_sims_per_worker)
+                for _ in range(NUM_WORKERS)
+            ]
+
+            results = [f.result() for f in futures]
+
+            counts = np.zeros(36, dtype=np.float64)
+            for r in results:
+                counts += np.array(r[:36], dtype=np.float64)
+
+            if temp == 0:
+                bestAs = np.argwhere(counts == np.max(counts)).flatten()
+                bestA = np.random.choice(bestAs)
+                probs = np.zeros(36)
+                probs[bestA] = 1.0
+                return probs
+
+            counts = np.power(counts, 1.0 / temp)
+            counts_sum = float(np.sum(counts))
+            if counts_sum > 0:
+                probs = counts / counts_sum
+            else:
+                valids = self.game.getValidMoves(canonicalBoard, 1)
+                probs = valids / np.sum(valids)
+
+            return probs
+
+    def close(self):
+        self._executor.shutdown(wait=True)
+
+    def __del__(self):
+        try:
+            self.close()
+        except Exception:
+            pass
