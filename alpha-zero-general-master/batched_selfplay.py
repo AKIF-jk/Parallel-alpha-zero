@@ -28,6 +28,9 @@ class BatchedSelfPlayWorker:
         self.nn_cache = {}
         self.cache_hits = 0
         self.cache_misses = 0
+        self.gpu_batch_boards = 0
+        self.gpu_batch_calls = 0
+        self.mcts_sim_count = 0
         self.model = getattr(self.nnet, "model", None)
         if self.model is None:
             self.model = getattr(self.nnet, "nnet")
@@ -48,6 +51,15 @@ class BatchedSelfPlayWorker:
             "misses": self.cache_misses,
             "hit_rate_pct": hit_rate * 100,
             "cache_size": len(self.nn_cache),
+        }
+
+    def batch_stats(self):
+        avg_batch = self.gpu_batch_boards / self.gpu_batch_calls if self.gpu_batch_calls > 0 else 0.0
+        return {
+            "total_gpu_calls": self.gpu_batch_calls,
+            "total_boards_to_gpu": self.gpu_batch_boards,
+            "avg_gpu_batch_size": avg_batch,
+            "mcts_sim_count": self.mcts_sim_count,
         }
 
     def _execute_games(self, num_games):
@@ -76,6 +88,7 @@ class BatchedSelfPlayWorker:
                     if not is_active:
                         continue
 
+                    self.mcts_sim_count += 1
                     if profiler is not None:
                         profiler.increment_mcts_sim()
 
@@ -95,6 +108,8 @@ class BatchedSelfPlayWorker:
                         grouped_requests[key].append(request)
 
                     batch_pi, batch_v = self._batched_predict([request["board"] for request in unique_requests])
+                    self.gpu_batch_boards += len(unique_requests)
+                    self.gpu_batch_calls += 1
                     if profiler is not None:
                         profiler.record_gpu_batch(len(unique_requests))
 
