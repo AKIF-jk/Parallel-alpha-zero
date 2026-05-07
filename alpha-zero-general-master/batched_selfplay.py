@@ -31,6 +31,7 @@ class BatchedSelfPlayWorker:
         self.gpu_batch_boards = 0
         self.gpu_batch_calls = 0
         self.mcts_sim_count = 0
+        self.virtual_loss_diversions = 0
         self.model = getattr(self.nnet, "model", None)
         if self.model is None:
             self.model = getattr(self.nnet, "nnet")
@@ -55,11 +56,17 @@ class BatchedSelfPlayWorker:
 
     def batch_stats(self):
         avg_batch = self.gpu_batch_boards / self.gpu_batch_calls if self.gpu_batch_calls > 0 else 0.0
+        avg_vl_diversions = (
+            self.virtual_loss_diversions / self.mcts_sim_count
+            if self.mcts_sim_count > 0 else 0.0
+        )
         return {
             "total_gpu_calls": self.gpu_batch_calls,
             "total_boards_to_gpu": self.gpu_batch_boards,
             "avg_gpu_batch_size": avg_batch,
             "mcts_sim_count": self.mcts_sim_count,
+            "virtual_loss_diversions": self.virtual_loss_diversions,
+            "avg_virtual_loss_collisions_avoided": avg_vl_diversions,
         }
 
     def _execute_games(self, num_games):
@@ -178,7 +185,7 @@ class BatchedSelfPlayWorker:
                     return None
 
                 action = self._select_action(mcts, node)
-                path.append((node, action))
+                path.append((s, action))
                 next_board, next_player = self.game.getNextState(board, 1, action)
                 board = self.game.getCanonicalForm(next_board, next_player)
                 continue
@@ -247,9 +254,9 @@ class BatchedSelfPlayWorker:
 
     def _backup_path(self, path, return_value):
         value = return_value
-        for node, action in reversed(path):
-            if hasattr(node, "virtual_N"):
-                node.virtual_N[action] = max(0, node.virtual_N[action] - 1)
+        for board_string, action in reversed(path):
+            node = self.nodes[board_string]
+            node.virtual_loss[action] = max(0, node.virtual_loss[action] - 1)
             node.N[action] += 1
             old_n = node.N[action] - 1
             node.Q[action] = (old_n * node.Q[action] + value) / node.N[action]
@@ -257,14 +264,19 @@ class BatchedSelfPlayWorker:
             value = -value
 
     def _select_action(self, mcts, node):
-        if not hasattr(node, "virtual_N"):
-            node.virtual_N = np.zeros(self.num_actions, dtype=np.int32)
+        no_vl_ucb = node.Q + self.args.cpuct * node.P * np.sqrt(node.N_total + EPS) / (1 + node.N)
+        no_vl_ucb[node.valid_moves == 0] = -np.inf
+        no_vl_action = int(np.argmax(no_vl_ucb))
 
-        effective_n = node.N + node.virtual_N
-        ucb = node.Q + self.args.cpuct * node.P * np.sqrt(node.N_total + EPS) / (1 + effective_n)
+        effective_Q = node.Q - node.virtual_loss * 1.0
+        ucb = effective_Q + self.args.cpuct * node.P * np.sqrt(node.N_total + EPS) / (1 + node.N + node.virtual_loss)
         ucb[node.valid_moves == 0] = -np.inf
         action = int(np.argmax(ucb))
-        node.virtual_N[action] += 1
+
+        if np.any(node.virtual_loss > 0) and action != no_vl_action:
+            self.virtual_loss_diversions += 1
+
+        node.virtual_loss[action] += 1
         return action
 
     def _get_action_prob(self, mcts, canonical_board, temp=1):

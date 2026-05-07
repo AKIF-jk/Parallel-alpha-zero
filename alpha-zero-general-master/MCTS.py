@@ -23,6 +23,7 @@ class MCTSNode:
         self.valid_moves = None                             # valid moves mask (1=valid, 0=invalid)
         self.is_terminal = False
         self.terminal_value = 0.0
+        self.virtual_loss = np.zeros(num_actions, dtype=np.int32)
 
 
 class MCTS():
@@ -147,7 +148,8 @@ class MCTS():
 
         # Compute UCB for all actions (vectorized)
         node = self.nodes[s]
-        ucb = node.Q + self.args.cpuct * node.P * np.sqrt(node.N_total + EPS) / (1 + node.N)
+        effective_Q = node.Q - node.virtual_loss * 1.0
+        ucb = effective_Q + self.args.cpuct * node.P * np.sqrt(node.N_total + EPS) / (1 + node.N + node.virtual_loss)
         ucb[node.valid_moves == 0] = -np.inf  # mask invalid actions
         best_act = np.argmax(ucb)
 

@@ -26,7 +26,7 @@ if torch.cuda.is_available():
     log.info('CUDA device: %s', torch.cuda.get_device_name(0))
     torch.backends.cudnn.benchmark = True
 
-# Technique C runs on Colab T4, so use a larger GPU-friendly training setup.
+# Technique E uses the same GPU-backed evaluation settings as Technique C.
 nnet_args.epochs = 15
 nnet_args.batch_size = 128
 
@@ -40,6 +40,8 @@ profiler.cache_hit_rate_per_iter = []
 profiler.gpu_calls_per_iter = []
 profiler.avg_gpu_batch_size = []
 profiler.avg_virtual_loss_collisions_avoided = []
+profiler.worker_utilization = []
+profiler.examples_per_worker = []
 profiler.win_rate_vs_greedy = 0.0
 
 args = dotdict({
@@ -61,16 +63,16 @@ args = dotdict({
 
 def main():
     log.info('Loading %s...', Game.__name__)
-    g = Game(6)
+    game = Game(6)
     log.info('Loading %s...', nn.__name__)
-    nnet = nn(g)
+    nnet = nn(game)
     log.info('Loading the Coach...')
-    c = Coach(g, nnet, args)
-    log.info('Starting Technique C training (lockstep batched self-play)')
-    c.learn()
+    coach = Coach(game, nnet, args)
+    log.info('Starting Technique E training (batched self-play with explicit virtual loss)')
+    coach.learn()
 
-    metrics = profiler.save_metrics(CHECKPOINT_DIR, filename="technique_c_metrics.json")
-    log.info('Technique C metrics saved: %s', metrics)
+    metrics = profiler.save_metrics(CHECKPOINT_DIR, filename="technique_e_metrics.json")
+    log.info('Technique E metrics saved: %s', metrics)
 
 
 if __name__ == "__main__":

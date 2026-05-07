@@ -85,6 +85,7 @@ class ParallelCoach:
             avg_batch_size = 0.0
             gpu_calls = 0
             total_mcts = 0
+            virtual_loss_diversions = 0
             worker_elapsed = []
             worker_example_counts = [0, 0]
 
@@ -136,6 +137,7 @@ class ParallelCoach:
                     gpu_calls += worker_batch["total_gpu_calls"]
                     total_boards_to_gpu += worker_batch["total_boards_to_gpu"]
                     total_mcts += worker_batch["mcts_sim_count"]
+                    virtual_loss_diversions += worker_batch.get("virtual_loss_diversions", 0)
 
                 total_cache = cache_hits + cache_misses
                 cache_stats = {
@@ -145,9 +147,12 @@ class ParallelCoach:
                     "cache_size": cache_size,
                 }
                 avg_batch_size = total_boards_to_gpu / gpu_calls if gpu_calls > 0 else 0.0
+                avg_vl_collisions = virtual_loss_diversions / total_mcts if total_mcts > 0 else 0.0
 
                 iterationTrainExamples = deque(all_examples, maxlen=self.args.maxlenOfQueue)
                 self.trainExamplesHistory.append(iterationTrainExamples)
+            else:
+                avg_vl_collisions = 0.0
 
             if PROFILER_AVAILABLE:
                 self_play_sec = profiler.end_phase("self_play")
@@ -223,6 +228,7 @@ class ParallelCoach:
                 profiler.cache_hit_rate_per_iter.append(cache_stats["hit_rate_pct"])
                 profiler.gpu_calls_per_iter.append(gpu_calls)
                 profiler.avg_gpu_batch_size.append(avg_batch_size)
+                profiler.avg_virtual_loss_collisions_avoided.append(avg_vl_collisions)
                 profiler.worker_utilization.append(worker_util)
                 profiler.examples_per_worker.append(worker_example_counts)
 

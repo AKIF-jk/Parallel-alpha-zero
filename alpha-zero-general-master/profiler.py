@@ -14,6 +14,7 @@ peak_ram_list = []
 cache_hit_rate_per_iter = []
 gpu_calls_per_iter = []
 avg_gpu_batch_size = []
+avg_virtual_loss_collisions_avoided = []
 worker_utilization = []
 examples_per_worker = []
 win_rate_vs_greedy = 0.0
@@ -103,7 +104,7 @@ def get_peak_ram_mb():
 def save_metrics(checkpoint_dir, filename="baseline_metrics.json"):
     global iteration_metrics_list, gpu_utilization_list, mcts_sims_per_sec_list, peak_ram_list
     global cache_hit_rate_per_iter, gpu_calls_per_iter, avg_gpu_batch_size
-    global worker_utilization, examples_per_worker, win_rate_vs_greedy
+    global avg_virtual_loss_collisions_avoided, worker_utilization, examples_per_worker, win_rate_vs_greedy
     metrics = {
         "iteration_times": iteration_metrics_list,
         "gpu_utilization_pct": gpu_utilization_list,
@@ -112,6 +113,7 @@ def save_metrics(checkpoint_dir, filename="baseline_metrics.json"):
         "cache_hit_rate_per_iter": cache_hit_rate_per_iter,
         "gpu_calls_per_iter": gpu_calls_per_iter,
         "avg_gpu_batch_size": avg_gpu_batch_size,
+        "avg_virtual_loss_collisions_avoided": avg_virtual_loss_collisions_avoided,
         "worker_utilization": worker_utilization,
         "examples_per_worker": examples_per_worker,
         "win_rate_vs_greedy": win_rate_vs_greedy

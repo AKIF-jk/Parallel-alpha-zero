@@ -51,6 +51,7 @@ except ImportError:
         cache_hit_rate_per_iter = []
         gpu_calls_per_iter = []
         avg_gpu_batch_size = []
+        avg_virtual_loss_collisions_avoided = []
         win_rate_vs_greedy = 0.0
     profiler = DummyProfiler()
 
@@ -138,6 +139,7 @@ class Coach():
             # examples of the iteration
             cache_stats = self.mcts.cache_stats()
             gpu_calls = 0
+            virtual_loss_collisions_avoided = 0.0
             if not self.skipFirstSelfPlay or i > 1:
                 worker = BatchedSelfPlayWorker(self.game, self.nnet, self.args)
                 iterationTrainExamples = deque(
@@ -145,6 +147,8 @@ class Coach():
                     maxlen=self.args.maxlenOfQueue
                 )
                 cache_stats = worker.cache_stats()
+                worker_batch_stats = worker.batch_stats()
+                virtual_loss_collisions_avoided = worker_batch_stats["avg_virtual_loss_collisions_avoided"]
 
                 # save the iteration examples to the history
                 self.trainExamplesHistory.append(iterationTrainExamples)
@@ -220,6 +224,7 @@ class Coach():
                 profiler.cache_hit_rate_per_iter.append(cache_stats["hit_rate_pct"])
                 profiler.gpu_calls_per_iter.append(gpu_calls)
                 profiler.avg_gpu_batch_size.append(avg_batch_size)
+                profiler.avg_virtual_loss_collisions_avoided.append(virtual_loss_collisions_avoided)
 
             # Win rate vs greedy after iteration 5
             if i == 5 and PROFILER_AVAILABLE:

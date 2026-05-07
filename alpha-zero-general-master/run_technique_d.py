@@ -45,6 +45,7 @@ def main():
     profiler.cache_hit_rate_per_iter = []
     profiler.gpu_calls_per_iter = []
     profiler.avg_gpu_batch_size = []
+    profiler.avg_virtual_loss_collisions_avoided = []
     profiler.worker_utilization = []
     profiler.examples_per_worker = []
     profiler.win_rate_vs_greedy = 0.0
