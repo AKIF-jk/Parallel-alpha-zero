@@ -1,0 +1,55 @@
+{
+  "config": [
+    {
+      "numIters": 10,
+      "numEps": 25,
+      "tempThreshold": 15,
+      "updateThreshold": 0.6,
+      "maxlenOfQueue": 200000,
+      "numMCTSSims": 15,
+      "arenaCompare": 10,
+      "load_model": "False",
+      "load_folder_file": "('/dev/models/8x100x50','best.pth.tar')",
+      "numItersForTrainExamplesHistory": 20
+    }
+  ],
+
+  "iteration_times": [
+    {
+      "self_play_sec": 30.252554083999712,
+      "train_sec": 14.12123231500027,
+      "arena_sec": 30.013373112999943
+    },
+    {
+      "self_play_sec": 30.571910802000275,
+      "train_sec": 27.24801092799953,
+      "arena_sec": 30.727175447000263
+    },
+    {
+      "self_play_sec": 29.78403697700014,
+      "train_sec": 42.40618619700035,
+      "arena_sec": 31.180249639000067
+    },
+    {
+      "self_play_sec": 29.880589708000116,
+      "train_sec": 57.214726213000176,
+      "arena_sec": 30.320494851999683
+    },
+    {
+      "self_play_sec": 28.430249062000257,
+      "train_sec": 71.09279144300035,
+      "arena_sec": 29.904570362999948
+    }
+  ],
+  "gpu_utilization_pct": [
+    51.648648648648646, 57.0, 58.6078431372549, 61.793103448275865, 64.875
+  ],
+  "mcts_sims_per_sec": [
+    1075.9422133292007, 1063.0673434345351, 1100.4216797511212,
+    1097.7025661316936, 1151.062726486631
+  ],
+  "peak_ram_mb": [
+    1364.44140625, 1472.31640625, 1551.90234375, 1568.40234375, 1717.33984375
+  ],
+  "win_rate_vs_greedy": 1.0
+}
