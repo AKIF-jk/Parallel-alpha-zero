@@ -36,6 +36,22 @@ class MCTS():
         self.args = args
         self.num_actions = self.game.getActionSize()
         self.nodes = {}  # maps board string s -> MCTSNode
+        self.nn_cache = {}  # board_string -> (policy_np_array, value_float)
+        self.cache_hits = 0
+        self.cache_misses = 0
+
+    def reset_search_tree(self):
+        self.nodes = {}
+
+    def cache_stats(self):
+        total = self.cache_hits + self.cache_misses
+        hit_rate = self.cache_hits / total if total > 0 else 0
+        return {
+            "hits": self.cache_hits,
+            "misses": self.cache_misses,
+            "hit_rate_pct": hit_rate * 100,
+            "cache_size": len(self.nn_cache),
+        }
 
     def getActionProb(self, canonicalBoard, temp=1):
         """
@@ -96,7 +112,21 @@ class MCTS():
 
         # Handle leaf node
         if s not in self.nodes:
-            ps, v = self.nnet.predict(canonicalBoard)
+            if s in self.nn_cache:
+                ps, v = self.nn_cache[s]
+                self.cache_hits += 1
+            else:
+                ps, v = self.nnet.predict(canonicalBoard)
+                v = float(v)
+
+                # Cache this network result and all symmetric equivalents.
+                sym = self.game.getSymmetries(canonicalBoard, ps)
+                for sym_board, sym_ps in sym:
+                    sym_s = self.game.stringRepresentation(sym_board)
+                    if sym_s not in self.nn_cache:
+                        self.nn_cache[sym_s] = (np.array(sym_ps), v)
+                self.cache_misses += 1
+
             valids = self.game.getValidMoves(canonicalBoard, 1)
             
             # Mask invalid moves

@@ -45,6 +45,7 @@ args = dotdict({
     'numItersForTrainExamplesHistory': 20,
 })
 
+
 def main():
     log.info('Loading %s...', Game.__name__)
     g = Game(6)
@@ -52,11 +53,12 @@ def main():
     nnet = nn(g)
     log.info('Loading the Coach...')
     c = Coach(g, nnet, args)
-    log.info('Starting Technique A training (numpy arrays)')
+    log.info('Starting Technique B training (NN position cache)')
     c.learn()
-    
-    metrics = profiler.save_metrics(CHECKPOINT_DIR, filename="technique_a_metrics.json")
-    log.info('Technique A metrics saved: %s', metrics)
+
+    metrics = profiler.save_metrics(CHECKPOINT_DIR, filename="technique_b_metrics.json")
+    log.info('Technique B metrics saved: %s', metrics)
+
 
 if __name__ == "__main__":
     main()

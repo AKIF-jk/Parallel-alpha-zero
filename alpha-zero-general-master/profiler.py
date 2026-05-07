@@ -11,6 +11,8 @@ iteration_metrics_list = []
 gpu_utilization_list = []
 mcts_sims_per_sec_list = []
 peak_ram_list = []
+cache_hit_rate_per_iter = []
+gpu_calls_per_iter = []
 win_rate_vs_greedy = 0.0
 mcts_sim_count = 0
 phase_start_times = {}
@@ -78,12 +80,15 @@ def get_peak_ram_mb():
     return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024  # KB to MB
 
 def save_metrics(checkpoint_dir, filename="baseline_metrics.json"):
-    global iteration_metrics_list, gpu_utilization_list, mcts_sims_per_sec_list, peak_ram_list, win_rate_vs_greedy
+    global iteration_metrics_list, gpu_utilization_list, mcts_sims_per_sec_list, peak_ram_list
+    global cache_hit_rate_per_iter, gpu_calls_per_iter, win_rate_vs_greedy
     metrics = {
         "iteration_times": iteration_metrics_list,
         "gpu_utilization_pct": gpu_utilization_list,
         "mcts_sims_per_sec": mcts_sims_per_sec_list,
         "peak_ram_mb": peak_ram_list,
+        "cache_hit_rate_per_iter": cache_hit_rate_per_iter,
+        "gpu_calls_per_iter": gpu_calls_per_iter,
         "win_rate_vs_greedy": win_rate_vs_greedy
     }
     os.makedirs(checkpoint_dir, exist_ok=True)

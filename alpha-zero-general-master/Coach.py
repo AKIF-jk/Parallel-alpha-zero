@@ -41,6 +41,8 @@ except ImportError:
         mcts_sims_per_sec_list = []
         peak_ram_list = []
         gpu_utilization_list = []
+        cache_hit_rate_per_iter = []
+        gpu_calls_per_iter = []
         win_rate_vs_greedy = 0.0
     profiler = DummyProfiler()
 
@@ -112,6 +114,11 @@ class Coach():
             # bookkeeping
             log.info(f'Starting Iter #{i} ...')
 
+            # The NN cache is valid only for the current network weights.
+            self.mcts = MCTS(self.game, self.nnet, self.args)
+            self.mcts.nn_cache = {}
+            log.info(f'MCTS NN cache reset for Iter #{i}; cache size = {len(self.mcts.nn_cache)}')
+
             # Start profiling for this iteration
             if PROFILER_AVAILABLE:
                 profiler.reset_mcts_sim()
@@ -124,11 +131,13 @@ class Coach():
                 iterationTrainExamples = deque([], maxlen=self.args.maxlenOfQueue)
 
                 for _ in tqdm(range(self.args.numEps), desc="Self Play"):
-                    self.mcts = MCTS(self.game, self.nnet, self.args)  # reset search tree
+                    self.mcts.reset_search_tree()
                     iterationTrainExamples += self.executeEpisode()
 
                 # save the iteration examples to the history
                 self.trainExamplesHistory.append(iterationTrainExamples)
+
+            cache_stats = self.mcts.cache_stats()
 
             # End self-play phase timing
             if PROFILER_AVAILABLE:
@@ -196,6 +205,8 @@ class Coach():
                 })
                 profiler.mcts_sims_per_sec_list.append(mcts_sps)
                 profiler.peak_ram_list.append(peak_ram)
+                profiler.cache_hit_rate_per_iter.append(cache_stats["hit_rate_pct"])
+                profiler.gpu_calls_per_iter.append(cache_stats["misses"])
 
             # Win rate vs greedy after iteration 5
             if i == 5 and PROFILER_AVAILABLE:
