@@ -15,30 +15,34 @@ from MCTS import MCTS
 
 log = logging.getLogger(__name__)
 
-# Import profiler - will be None if not available
+# Import profiler module - will be None if not available
 try:
-    from profiler import (
-        start_gpu_monitor, stop_gpu_monitor, reset_mcts_sim,
-        get_mcts_sim_count, start_phase, end_phase, get_peak_ram_mb,
-        iteration_metrics_list, mcts_sims_per_sec_list, peak_ram_list,
-        gpu_utilization_list, win_rate_vs_greedy
-    )
+    import profiler
     PROFILER_AVAILABLE = True
 except ImportError:
     PROFILER_AVAILABLE = False
-    # Dummy functions if profiler not available
-    def start_gpu_monitor(): pass
-    def stop_gpu_monitor(): pass
-    def reset_mcts_sim(): pass
-    def get_mcts_sim_count(): return 0
-    def start_phase(name): pass
-    def end_phase(name): return 0.0
-    def get_peak_ram_mb(): return 0.0
-    iteration_metrics_list = []
-    mcts_sims_per_sec_list = []
-    peak_ram_list = []
-    gpu_utilization_list = []
-    win_rate_vs_greedy = 0.0
+    # Dummy module if profiler not available
+    class DummyProfiler:
+        @staticmethod
+        def start_gpu_monitor(): pass
+        @staticmethod
+        def stop_gpu_monitor(): pass
+        @staticmethod
+        def reset_mcts_sim(): pass
+        @staticmethod
+        def get_mcts_sim_count(): return 0
+        @staticmethod
+        def start_phase(name): pass
+        @staticmethod
+        def end_phase(name): return 0.0
+        @staticmethod
+        def get_peak_ram_mb(): return 0.0
+        iteration_metrics_list = []
+        mcts_sims_per_sec_list = []
+        peak_ram_list = []
+        gpu_utilization_list = []
+        win_rate_vs_greedy = 0.0
+    profiler = DummyProfiler()
 
 
 class Coach():
@@ -110,10 +114,10 @@ class Coach():
 
             # Start profiling for this iteration
             if PROFILER_AVAILABLE:
-                reset_mcts_sim()
-                start_gpu_monitor()
-                start_phase("self_play")
-                iteration_start_ram = get_peak_ram_mb()
+                profiler.reset_mcts_sim()
+                profiler.start_gpu_monitor()
+                profiler.start_phase("self_play")
+                iteration_start_ram = profiler.get_peak_ram_mb()
 
             # examples of the iteration
             if not self.skipFirstSelfPlay or i > 1:
@@ -128,9 +132,9 @@ class Coach():
 
             # End self-play phase timing
             if PROFILER_AVAILABLE:
-                self_play_sec = end_phase("self_play")
-                peak_ram = max(iteration_start_ram, get_peak_ram_mb())
-                start_phase("train")
+                self_play_sec = profiler.end_phase("self_play")
+                peak_ram = max(iteration_start_ram, profiler.get_peak_ram_mb())
+                profiler.start_phase("train")
 
             if len(self.trainExamplesHistory) > self.args.numItersForTrainExamplesHistory:
                 log.warning(
@@ -156,9 +160,9 @@ class Coach():
 
             # End training phase timing
             if PROFILER_AVAILABLE:
-                train_sec = end_phase("train")
-                peak_ram = max(peak_ram, get_peak_ram_mb())
-                start_phase("arena")
+                train_sec = profiler.end_phase("train")
+                peak_ram = max(peak_ram, profiler.get_peak_ram_mb())
+                profiler.start_phase("arena")
 
             log.info('PITTING AGAINST PREVIOUS VERSION')
             arena = Arena(lambda x: np.argmax(pmcts.getActionProb(x, temp=0)),
@@ -176,22 +180,22 @@ class Coach():
 
             # End arena phase timing and record metrics
             if PROFILER_AVAILABLE:
-                arena_sec = end_phase("arena")
-                peak_ram = max(peak_ram, get_peak_ram_mb())
-                stop_gpu_monitor()
+                arena_sec = profiler.end_phase("arena")
+                peak_ram = max(peak_ram, profiler.get_peak_ram_mb())
+                profiler.stop_gpu_monitor()
 
                 # Calculate MCTS sims per second
-                total_mcts = get_mcts_sim_count()
+                total_mcts = profiler.get_mcts_sim_count()
                 mcts_sps = total_mcts / self_play_sec if self_play_sec > 0 else 0.0
 
                 # Record iteration metrics
-                iteration_metrics_list.append({
+                profiler.iteration_metrics_list.append({
                     "self_play_sec": self_play_sec,
                     "train_sec": train_sec,
                     "arena_sec": arena_sec
                 })
-                mcts_sims_per_sec_list.append(mcts_sps)
-                peak_ram_list.append(peak_ram)
+                profiler.mcts_sims_per_sec_list.append(mcts_sps)
+                profiler.peak_ram_list.append(peak_ram)
 
             # Win rate vs greedy after iteration 5
             if i == 5 and PROFILER_AVAILABLE:
@@ -205,7 +209,6 @@ class Coach():
 
                 arena_greedy = Arena(nnet_player, greedy_player.play, self.game)
                 nwins, gwins, draws = arena_greedy.playGames(20)
-                import profiler
                 profiler.win_rate_vs_greedy = nwins / 20
                 log.info(f"Win rate vs greedy: {profiler.win_rate_vs_greedy}")
 

@@ -52,8 +52,8 @@ def main():
     c.learn()
 
     # Save metrics
-    from profiler import save_metrics
-    metrics = save_metrics(CHECKPOINT_DIR)
+    import profiler
+    metrics = profiler.save_metrics(CHECKPOINT_DIR, filename="baseline_metrics.json")
     log.info('Baseline metrics saved: %s', metrics)
 
 if __name__ == "__main__":
