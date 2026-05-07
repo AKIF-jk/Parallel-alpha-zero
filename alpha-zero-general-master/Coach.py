@@ -11,6 +11,7 @@ import numpy as np
 from tqdm import tqdm
 
 from Arena import Arena
+from batched_selfplay import BatchedSelfPlayWorker
 from MCTS import MCTS
 
 log = logging.getLogger(__name__)
@@ -37,12 +38,19 @@ except ImportError:
         def end_phase(name): return 0.0
         @staticmethod
         def get_peak_ram_mb(): return 0.0
+        @staticmethod
+        def reset_gpu_batch_stats(): pass
+        @staticmethod
+        def get_avg_gpu_batch_size(): return 0.0
+        @staticmethod
+        def get_gpu_batch_call_count(): return 0
         iteration_metrics_list = []
         mcts_sims_per_sec_list = []
         peak_ram_list = []
         gpu_utilization_list = []
         cache_hit_rate_per_iter = []
         gpu_calls_per_iter = []
+        avg_gpu_batch_size = []
         win_rate_vs_greedy = 0.0
     profiler = DummyProfiler()
 
@@ -122,27 +130,31 @@ class Coach():
             # Start profiling for this iteration
             if PROFILER_AVAILABLE:
                 profiler.reset_mcts_sim()
+                profiler.reset_gpu_batch_stats()
                 profiler.start_gpu_monitor()
                 profiler.start_phase("self_play")
                 iteration_start_ram = profiler.get_peak_ram_mb()
 
             # examples of the iteration
+            cache_stats = self.mcts.cache_stats()
+            gpu_calls = 0
             if not self.skipFirstSelfPlay or i > 1:
-                iterationTrainExamples = deque([], maxlen=self.args.maxlenOfQueue)
-
-                for _ in tqdm(range(self.args.numEps), desc="Self Play"):
-                    self.mcts.reset_search_tree()
-                    iterationTrainExamples += self.executeEpisode()
+                worker = BatchedSelfPlayWorker(self.game, self.nnet, self.args)
+                iterationTrainExamples = deque(
+                    worker.execute_batch(self.args.numEps),
+                    maxlen=self.args.maxlenOfQueue
+                )
+                cache_stats = worker.cache_stats()
 
                 # save the iteration examples to the history
                 self.trainExamplesHistory.append(iterationTrainExamples)
-
-            cache_stats = self.mcts.cache_stats()
 
             # End self-play phase timing
             if PROFILER_AVAILABLE:
                 self_play_sec = profiler.end_phase("self_play")
                 peak_ram = max(iteration_start_ram, profiler.get_peak_ram_mb())
+                avg_batch_size = profiler.get_avg_gpu_batch_size()
+                gpu_calls = profiler.get_gpu_batch_call_count()
                 profiler.start_phase("train")
 
             if len(self.trainExamplesHistory) > self.args.numItersForTrainExamplesHistory:
@@ -206,7 +218,8 @@ class Coach():
                 profiler.mcts_sims_per_sec_list.append(mcts_sps)
                 profiler.peak_ram_list.append(peak_ram)
                 profiler.cache_hit_rate_per_iter.append(cache_stats["hit_rate_pct"])
-                profiler.gpu_calls_per_iter.append(cache_stats["misses"])
+                profiler.gpu_calls_per_iter.append(gpu_calls)
+                profiler.avg_gpu_batch_size.append(avg_batch_size)
 
             # Win rate vs greedy after iteration 5
             if i == 5 and PROFILER_AVAILABLE:

@@ -28,6 +28,7 @@ profiler.mcts_sims_per_sec_list = []
 profiler.peak_ram_list = []
 profiler.cache_hit_rate_per_iter = []
 profiler.gpu_calls_per_iter = []
+profiler.avg_gpu_batch_size = []
 profiler.win_rate_vs_greedy = 0.0
 
 args = dotdict({

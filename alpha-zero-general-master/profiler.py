@@ -13,8 +13,11 @@ mcts_sims_per_sec_list = []
 peak_ram_list = []
 cache_hit_rate_per_iter = []
 gpu_calls_per_iter = []
+avg_gpu_batch_size = []
 win_rate_vs_greedy = 0.0
 mcts_sim_count = 0
+gpu_batch_boards = 0
+gpu_batch_calls = 0
 phase_start_times = {}
 
 class GPUMonitor:
@@ -70,6 +73,22 @@ def get_mcts_sim_count():
     global mcts_sim_count
     return mcts_sim_count
 
+def reset_gpu_batch_stats():
+    global gpu_batch_boards, gpu_batch_calls
+    gpu_batch_boards = 0
+    gpu_batch_calls = 0
+
+def record_gpu_batch(batch_size):
+    global gpu_batch_boards, gpu_batch_calls
+    gpu_batch_boards += batch_size
+    gpu_batch_calls += 1
+
+def get_avg_gpu_batch_size():
+    return gpu_batch_boards / gpu_batch_calls if gpu_batch_calls > 0 else 0.0
+
+def get_gpu_batch_call_count():
+    return gpu_batch_calls
+
 def start_phase(name):
     phase_start_times[name] = time.perf_counter()
 
@@ -81,7 +100,7 @@ def get_peak_ram_mb():
 
 def save_metrics(checkpoint_dir, filename="baseline_metrics.json"):
     global iteration_metrics_list, gpu_utilization_list, mcts_sims_per_sec_list, peak_ram_list
-    global cache_hit_rate_per_iter, gpu_calls_per_iter, win_rate_vs_greedy
+    global cache_hit_rate_per_iter, gpu_calls_per_iter, avg_gpu_batch_size, win_rate_vs_greedy
     metrics = {
         "iteration_times": iteration_metrics_list,
         "gpu_utilization_pct": gpu_utilization_list,
@@ -89,6 +108,7 @@ def save_metrics(checkpoint_dir, filename="baseline_metrics.json"):
         "peak_ram_mb": peak_ram_list,
         "cache_hit_rate_per_iter": cache_hit_rate_per_iter,
         "gpu_calls_per_iter": gpu_calls_per_iter,
+        "avg_gpu_batch_size": avg_gpu_batch_size,
         "win_rate_vs_greedy": win_rate_vs_greedy
     }
     os.makedirs(checkpoint_dir, exist_ok=True)
