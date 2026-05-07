@@ -12,6 +12,7 @@ CHECKPOINT_DIR = args_cli.checkpoint_dir
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 
 import logging
+import torch
 from Coach import Coach
 from othello.OthelloGame import OthelloGame as Game
 from othello.pytorch.NNet import NNetWrapper as nn
@@ -19,6 +20,11 @@ from utils import dotdict
 
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
+
+log.info('CUDA available: %s', torch.cuda.is_available())
+if torch.cuda.is_available():
+    log.info('CUDA device: %s', torch.cuda.get_device_name(0))
+    torch.backends.cudnn.benchmark = True
 
 # Reset profiler metrics
 import profiler

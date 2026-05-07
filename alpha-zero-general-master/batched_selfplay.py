@@ -26,19 +26,17 @@ class BatchedSelfPlayWorker:
         self.nn_cache = {}
         self.cache_hits = 0
         self.cache_misses = 0
+        self.model = getattr(self.nnet, "model", None)
+        if self.model is None:
+            self.model = getattr(self.nnet, "nnet")
+        self.device = next(self.model.parameters()).device
 
     def execute_batch(self, num_games):
         """
         Run num_games games using lockstep MCTS batching.
         Returns list of training examples from all completed games.
         """
-        all_examples = []
-
-        for start in tqdm(range(0, num_games, BATCH_SIZE), desc="Batched Self Play"):
-            wave_size = min(BATCH_SIZE, num_games - start)
-            all_examples.extend(self._execute_wave(wave_size))
-
-        return all_examples
+        return self._execute_games(num_games)
 
     def cache_stats(self):
         total = self.cache_hits + self.cache_misses
@@ -50,20 +48,25 @@ class BatchedSelfPlayWorker:
             "cache_size": len(self.nn_cache),
         }
 
-    def _execute_wave(self, num_games):
-        boards = [self.game.getInitBoard() for _ in range(num_games)]
-        cur_players = [1] * num_games
-        game_examples = [[] for _ in range(num_games)]
-        active = [True] * num_games
-        episode_steps = [0] * num_games
-        mcts_list = [MCTS(self.game, self.nnet, self.args) for _ in range(num_games)]
-
-        for mcts in mcts_list:
-            mcts.nn_cache = self.nn_cache
+    def _execute_games(self, num_games):
+        slot_count = min(BATCH_SIZE, num_games)
+        boards = [None] * slot_count
+        cur_players = [1] * slot_count
+        game_examples = [[] for _ in range(slot_count)]
+        active = [False] * slot_count
+        episode_steps = [0] * slot_count
+        mcts_list = [None] * slot_count
 
         all_examples = []
+        started = 0
+        completed = 0
 
-        while any(active):
+        for slot in range(slot_count):
+            self._start_game(slot, boards, cur_players, game_examples, active, episode_steps, mcts_list)
+            started += 1
+
+        progress = tqdm(total=num_games, desc="Batched Self Play")
+        while completed < num_games:
             for sim in range(self.args.numMCTSSims):
                 pending = []
 
@@ -77,7 +80,6 @@ class BatchedSelfPlayWorker:
                     canonical_board = self.game.getCanonicalForm(boards[i], cur_players[i])
                     request = self._run_until_leaf(mcts_list[i], canonical_board)
                     if request is not None:
-                        request["game_id"] = i
                         pending.append(request)
 
                 if pending:
@@ -108,12 +110,30 @@ class BatchedSelfPlayWorker:
                 if result != 0:
                     all_examples.extend(self._finalize_examples(game_examples[i], result, cur_players[i]))
                     active[i] = False
+                    completed += 1
+                    progress.update(1)
                 elif episode_steps[i] >= MAX_STEPS:
                     log.warning("Max self-play steps reached for game %s; forcing draw target.", i)
                     all_examples.extend(self._finalize_examples(game_examples[i], 1e-4, cur_players[i]))
                     active[i] = False
+                    completed += 1
+                    progress.update(1)
 
+                if not active[i] and started < num_games:
+                    self._start_game(i, boards, cur_players, game_examples, active, episode_steps, mcts_list)
+                    started += 1
+
+        progress.close()
         return all_examples
+
+    def _start_game(self, slot, boards, cur_players, game_examples, active, episode_steps, mcts_list):
+        boards[slot] = self.game.getInitBoard()
+        cur_players[slot] = 1
+        game_examples[slot] = []
+        active[slot] = True
+        episode_steps[slot] = 0
+        mcts_list[slot] = MCTS(self.game, self.nnet, self.args)
+        mcts_list[slot].nn_cache = self.nn_cache
 
     def _run_until_leaf(self, mcts, canonical_board):
         board = canonical_board
@@ -223,16 +243,11 @@ class BatchedSelfPlayWorker:
         return (counts / counts_sum).tolist()
 
     def _batched_predict(self, boards):
-        model = getattr(self.nnet, "model", None)
-        if model is None:
-            model = getattr(self.nnet, "nnet")
+        batch = torch.as_tensor(np.asarray(boards, dtype=np.float32), device=self.device)
 
-        device = next(model.parameters()).device
-        batch = torch.FloatTensor(np.array(boards).astype(np.float64)).to(device)
-
-        model.eval()
+        self.model.eval()
         with torch.no_grad():
-            batch_pi, batch_v = model(batch)
+            batch_pi, batch_v = self.model(batch)
 
         return torch.exp(batch_pi).data.cpu().numpy(), batch_v.data.cpu().numpy().reshape(-1)
 
