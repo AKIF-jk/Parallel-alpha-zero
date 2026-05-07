@@ -15,7 +15,7 @@ import logging
 import torch
 from Coach import Coach
 from othello.OthelloGame import OthelloGame as Game
-from othello.pytorch.NNet import NNetWrapper as nn
+from othello.pytorch.NNet import NNetWrapper as nn, args as nnet_args
 from utils import dotdict
 
 log = logging.getLogger(__name__)
@@ -25,6 +25,10 @@ log.info('CUDA available: %s', torch.cuda.is_available())
 if torch.cuda.is_available():
     log.info('CUDA device: %s', torch.cuda.get_device_name(0))
     torch.backends.cudnn.benchmark = True
+
+# Technique C runs on Colab T4, so use a larger GPU-friendly training setup.
+nnet_args.epochs = 15
+nnet_args.batch_size = 128
 
 # Reset profiler metrics
 import profiler
@@ -39,12 +43,13 @@ profiler.win_rate_vs_greedy = 0.0
 
 args = dotdict({
     'numIters': 5,
-    'numEps': 20,
+    'numEps': 48,
     'tempThreshold': 15,
     'updateThreshold': 0.55,
     'maxlenOfQueue': 200000,
-    'numMCTSSims': 25,
-    'arenaCompare': 20,
+    'numMCTSSims': 35,
+    'arenaCompare': 40,
+    'greedyCompare': 40,
     'cpuct': 1,
     'checkpoint': CHECKPOINT_DIR,
     'load_model': False,

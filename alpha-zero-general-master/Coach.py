@@ -226,14 +226,15 @@ class Coach():
                 log.info("Running win rate vs greedy baseline...")
                 from othello.OthelloPlayers import GreedyOthelloPlayer
                 greedy_player = GreedyOthelloPlayer(self.game)
+                greedy_compare = getattr(self.args, "greedyCompare", 20)
 
                 def nnet_player(canonicalBoard):
                     mcts = MCTS(self.game, self.nnet, self.args)
                     return np.argmax(mcts.getActionProb(canonicalBoard, temp=0))
 
                 arena_greedy = Arena(nnet_player, greedy_player.play, self.game)
-                nwins, gwins, draws = arena_greedy.playGames(20)
-                profiler.win_rate_vs_greedy = nwins / 20
+                nwins, gwins, draws = arena_greedy.playGames(greedy_compare)
+                profiler.win_rate_vs_greedy = nwins / greedy_compare
                 log.info(f"Win rate vs greedy: {profiler.win_rate_vs_greedy}")
 
     def getCheckpointFile(self, iteration):
