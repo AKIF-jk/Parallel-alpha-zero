@@ -23,6 +23,8 @@ class BatchedSelfPlayWorker:
         self.nnet = nnet
         self.args = args
         self.num_actions = self.game.getActionSize()
+        self.nodes = {}
+        self.terminal_cache = {}
         self.nn_cache = {}
         self.cache_hits = 0
         self.cache_misses = 0
@@ -83,14 +85,24 @@ class BatchedSelfPlayWorker:
                         pending.append(request)
 
                 if pending:
-                    batch_pi, batch_v = self._batched_predict([request["board"] for request in pending])
+                    unique_requests = []
+                    grouped_requests = {}
+                    for request in pending:
+                        key = request["board_string"]
+                        if key not in grouped_requests:
+                            grouped_requests[key] = []
+                            unique_requests.append(request)
+                        grouped_requests[key].append(request)
+
+                    batch_pi, batch_v = self._batched_predict([request["board"] for request in unique_requests])
                     if profiler is not None:
-                        profiler.record_gpu_batch(len(pending))
+                        profiler.record_gpu_batch(len(unique_requests))
 
-                    for idx, request in enumerate(pending):
-                        self._complete_leaf(request, batch_pi[idx], batch_v[idx])
+                    for idx, request in enumerate(unique_requests):
+                        for grouped_request in grouped_requests[request["board_string"]]:
+                            self._complete_leaf(grouped_request, batch_pi[idx], batch_v[idx])
 
-            for i in range(num_games):
+            for i in range(slot_count):
                 if not active[i]:
                     continue
 
@@ -133,6 +145,7 @@ class BatchedSelfPlayWorker:
         active[slot] = True
         episode_steps[slot] = 0
         mcts_list[slot] = MCTS(self.game, self.nnet, self.args)
+        mcts_list[slot].nodes = self.nodes
         mcts_list[slot].nn_cache = self.nn_cache
 
     def _run_until_leaf(self, mcts, canonical_board):
@@ -155,7 +168,10 @@ class BatchedSelfPlayWorker:
                 board = self.game.getCanonicalForm(next_board, next_player)
                 continue
 
-            terminal_value = self.game.getGameEnded(board, 1)
+            terminal_value = self.terminal_cache.get(s)
+            if terminal_value is None:
+                terminal_value = self.game.getGameEnded(board, 1)
+                self.terminal_cache[s] = terminal_value
             if terminal_value != 0:
                 node = MCTSNode(self.num_actions)
                 node.is_terminal = True
@@ -180,18 +196,24 @@ class BatchedSelfPlayWorker:
 
     def _complete_leaf(self, request, pi, value):
         value = float(np.ravel(value)[0])
-        self.cache_misses += 1
 
-        sym = self.game.getSymmetries(request["board"], pi)
-        for sym_board, sym_pi in sym:
-            sym_s = self.game.stringRepresentation(sym_board)
-            if sym_s not in self.nn_cache:
-                self.nn_cache[sym_s] = (np.array(sym_pi), value)
+        if request["board_string"] not in self.nn_cache:
+            self.cache_misses += 1
+            self.nn_cache[request["board_string"]] = (np.array(pi), value)
+
+            sym = self.game.getSymmetries(request["board"], pi)
+            for sym_board, sym_pi in sym:
+                sym_s = self.game.stringRepresentation(sym_board)
+                if sym_s not in self.nn_cache:
+                    self.nn_cache[sym_s] = (np.array(sym_pi), value)
 
         self._expand_leaf(request["mcts"], request["board"], request["board_string"], pi)
         self._backup_path(request["path"], -value)
 
     def _expand_leaf(self, mcts, board, board_string, pi):
+        if board_string in mcts.nodes:
+            return
+
         valids = self.game.getValidMoves(board, 1)
 
         pi = np.array(pi, dtype=np.float64) * valids
@@ -211,6 +233,8 @@ class BatchedSelfPlayWorker:
     def _backup_path(self, path, return_value):
         value = return_value
         for node, action in reversed(path):
+            if hasattr(node, "virtual_N"):
+                node.virtual_N[action] = max(0, node.virtual_N[action] - 1)
             node.N[action] += 1
             old_n = node.N[action] - 1
             node.Q[action] = (old_n * node.Q[action] + value) / node.N[action]
@@ -218,9 +242,15 @@ class BatchedSelfPlayWorker:
             value = -value
 
     def _select_action(self, mcts, node):
-        ucb = node.Q + self.args.cpuct * node.P * np.sqrt(node.N_total + EPS) / (1 + node.N)
+        if not hasattr(node, "virtual_N"):
+            node.virtual_N = np.zeros(self.num_actions, dtype=np.int32)
+
+        effective_n = node.N + node.virtual_N
+        ucb = node.Q + self.args.cpuct * node.P * np.sqrt(node.N_total + EPS) / (1 + effective_n)
         ucb[node.valid_moves == 0] = -np.inf
-        return int(np.argmax(ucb))
+        action = int(np.argmax(ucb))
+        node.virtual_N[action] += 1
+        return action
 
     def _get_action_prob(self, mcts, canonical_board, temp=1):
         s = self.game.stringRepresentation(canonical_board)
