@@ -28,6 +28,14 @@ Quick CPU profiling helper:
 python3 profile_phase1.py --positions 64 --sims 32
 ```
 
+### Phase 2 Parallel MCTS
+Set `numMCTSThreads` to a value greater than `1` to enable thread-pool MCTS simulations with virtual loss coordination.
+
+Example:
+```bash
+python3 profile_phase1.py --positions 64 --sims 32 --threads 4
+```
+
 ### Docker Installation
 For easy environment setup, we can use [nvidia-docker](https://github.com/NVIDIA/nvidia-docker). Once you have nvidia-docker set up, we can then simply run:
 ```

@@ -49,11 +49,12 @@ def sample_positions(game, count, max_depth, seed):
     return positions
 
 
-def run_profile(board_size, num_positions, sims_per_position, max_depth, seed):
-    game = OthelloGame(board_size)
+def run_profile(board_size, num_positions, sims_per_position, max_depth, seed, threads=1):
+    game = OthelloGame(board_size, use_zobrist=False)
     nnet = DummyNNet(game)
     args = dotdict({
         "numMCTSSims": sims_per_position,
+        "numMCTSThreads": int(threads),
         "cpuct": 1.0,
         "nnCacheMaxSize": 500000,
         "actionArrayPoolSize": 1024,
@@ -76,6 +77,7 @@ def main():
     parser.add_argument("--sims", type=int, default=32)
     parser.add_argument("--max-depth", type=int, default=10)
     parser.add_argument("--seed", type=int, default=7)
+    parser.add_argument("--threads", type=int, default=1)
     parser.add_argument("--stats-file", type=str, default="phase1_profile.stats")
     parser.add_argument("--top", type=int, default=30)
     args = parser.parse_args()
@@ -88,6 +90,7 @@ def main():
         sims_per_position=args.sims,
         max_depth=args.max_depth,
         seed=args.seed,
+        threads=args.threads,
     )
     profiler.disable()
     profiler.dump_stats(args.stats_file)

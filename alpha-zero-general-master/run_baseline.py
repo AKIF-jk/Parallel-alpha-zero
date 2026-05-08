@@ -30,6 +30,7 @@ args = dotdict({
     'updateThreshold': 0.55,
     'maxlenOfQueue': 200000,
     'numMCTSSims': 25,
+    'numMCTSThreads': 1,
     'arenaCompare': 20,
     'cpuct': 1,
     'nnCacheMaxSize': 500000,

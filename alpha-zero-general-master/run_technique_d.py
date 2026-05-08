@@ -57,6 +57,7 @@ def main():
         'updateThreshold': 0.55,
         'maxlenOfQueue': 200000,
         'numMCTSSims': 35,
+        'numMCTSThreads': 1,
         'arenaCompare': 40,
         'greedyCompare': 40,
         'cpuct': 1,
