@@ -14,6 +14,7 @@ import torch.multiprocessing as mp
 from Arena import Arena
 from batched_selfplay import BatchedSelfPlayWorker
 from MCTS import MCTS
+from optimization_utils import LRUCache
 
 log = logging.getLogger(__name__)
 
@@ -254,7 +255,9 @@ class ParallelCoach:
                     "cache_hits": 0,
                     "cache_misses": 0,
                 }
-                inference_cache = {}
+                inference_cache = LRUCache(
+                    capacity=int(getattr(self.args, "inferenceCacheMaxSize", 500000))
+                )
                 while len(worker_results) < num_workers:
                     try:
                         result = result_queue.get_nowait()

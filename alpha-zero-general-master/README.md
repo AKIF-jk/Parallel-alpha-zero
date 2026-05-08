@@ -11,6 +11,23 @@ python main.py
 ```
 Choose your framework and game in ```main.py```.
 
+### Phase 1 Optimization Flags
+The Othello implementation now uses Zobrist hashing by default for state keys. You can disable it with:
+```python
+g = OthelloGame(6, use_zobrist=False)
+```
+
+Optional cache/pooling args (all defaulted if omitted):
+- `nnCacheMaxSize` (default `500000`)
+- `terminalCacheMaxSize` (default `250000`)
+- `inferenceCacheMaxSize` (default `500000`)
+- `actionArrayPoolSize` (default `256` in `MCTS`, `512` in batched self-play)
+
+Quick CPU profiling helper:
+```bash
+python3 profile_phase1.py --positions 64 --sims 32
+```
+
 ### Docker Installation
 For easy environment setup, we can use [nvidia-docker](https://github.com/NVIDIA/nvidia-docker). Once you have nvidia-docker set up, we can then simply run:
 ```

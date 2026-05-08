@@ -17,6 +17,10 @@ args = dotdict({
     'numMCTSSims': 15,          # Number of games moves for MCTS to simulate.
     'arenaCompare': 10,         # Number of games to play during arena play to determine if new net will be accepted.
     'cpuct': 1,
+    'nnCacheMaxSize': 500000,
+    'terminalCacheMaxSize': 250000,
+    'inferenceCacheMaxSize': 500000,
+    'actionArrayPoolSize': 512,
 
     'checkpoint': './temp/',
     'load_model': False,

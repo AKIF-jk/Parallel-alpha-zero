@@ -12,6 +12,8 @@ Main process: collect examples, train network, run arena, save checkpoints
 
 The goal was to use the 2 CPU cores available on Google Colab T4 while keeping neural network training and arena comparison in the main process.
 
+The first implementation let each worker own a CUDA inference path. A later revision changed the architecture so workers do CPU-side MCTS traversal only and the main process owns all PyTorch inference.
+
 ## Implementation Details
 
 ### Changes Made
@@ -94,7 +96,7 @@ nnet_args.batch_size = 128
 BATCH_SIZE = 16
 ```
 
-Each worker ran:
+In the historical two-CUDA-worker run, each worker ran:
 
 ```python
 args.numEps // 2
@@ -102,7 +104,9 @@ args.numEps // 2
 
 So with `numEps = 48`, each worker generated self-play from `24` games.
 
-## Metrics
+## Historical Metrics: Two CUDA Workers
+
+These metrics are from the first Technique D implementation, where both workers performed CUDA inference independently.
 
 ```json
 {
@@ -127,7 +131,7 @@ So with `numEps = 48`, each worker generated self-play from `24` games.
 }
 ```
 
-## Verification
+## Historical Verification
 
 | Check | Status | Details |
 |-------|--------|---------|
@@ -142,7 +146,7 @@ So with `numEps = 48`, each worker generated self-play from `24` games.
 | MCTS throughput better than Technique C | Fail | Technique D much lower |
 | Win rate vs greedy within baseline | Fail | `0.3` vs Technique C/Technique A `1.0` |
 
-## Comparison With Technique C
+## Historical Comparison With Technique C
 
 | Metric | Technique C Final | Technique D | Result |
 |--------|-------------------|-------------|--------|
@@ -153,7 +157,7 @@ So with `numEps = 48`, each worker generated self-play from `24` games.
 | Peak RAM iter 5 | `2620.96 MB` | `2402.82 MB` | Technique D lower RAM |
 | Win rate vs greedy | `1.0` | `0.3` | Technique D worse |
 
-## Analysis
+## Historical Analysis
 
 Technique D is mechanically correct but does not improve performance on Colab T4.
 
@@ -191,7 +195,7 @@ So the problem is not load imbalance. The likely causes are:
    - Final win rate vs greedy dropped to `0.3`.
    - This suggests the generated self-play data was lower quality or more unstable than Technique C's data.
 
-## Improvements
+## Historical Improvements
 
 Technique D still produced some useful results:
 
@@ -210,7 +214,7 @@ Technique D still produced some useful results:
 4. **Checkpoints were saved every iteration**
    - This protects against Colab session timeouts.
 
-## Drawbacks
+## Historical Drawbacks
 
 1. **No self-play speedup**
    - Self-play time did not improve over Technique C.
@@ -232,11 +236,11 @@ Technique D still produced some useful results:
    - Requires queue communication.
    - Can emit CUDA IPC cleanup warnings.
 
-## Recommendation
+## Recommendation After Historical Run
 
-Technique D should be reported as a negative multiprocessing result.
+The historical Technique D run should be reported as a negative multiprocessing result.
 
-The better architecture would be:
+The better architecture to test next was:
 
 ```text
 Worker processes:
@@ -250,7 +254,7 @@ Main process:
   sends policy/value results back to workers
 ```
 
-That design avoids multiple CUDA contexts and preserves larger global batches. It is more complex, but it is the correct direction if multiprocessing must be continued.
+That design avoids multiple CUDA contexts and preserves larger global batches. It is more complex, but it was the correct next direction if multiprocessing was continued.
 
 For this project, Technique C remains the best implementation because it achieves high batch size, high MCTS throughput, and baseline-quality win rate without multiprocessing overhead.
 
@@ -266,10 +270,125 @@ The Technique D implementation has been revised to follow the better architectur
 - `gpu_calls_per_iter` and `avg_gpu_batch_size` now report actual parent inference calls
 - `numEps` is distributed across `numWorkers` with remainder handling instead of always using `args.numEps // 2`
 
-The metrics in this document are still the historical two-CUDA-worker run. Re-run `run_technique_d.py` to measure the revised implementation.
+## Revised Architecture Metrics: Parent-Owned Inference
+
+The revised implementation was run with CPU-side self-play workers and parent-owned batched GPU inference:
+
+```json
+{
+  "self_play_sec": [74.75, 76.97, 79.62, 76.25, 76.92],
+  "train_sec": [41.41, 71.09, 111.01, 147.99, 185.56],
+  "arena_sec": [94.70, 94.21, 92.39, 77.09, 73.81],
+  "gpu_utilization_pct": [37.14, 43.40, 48.53, 54.07, 58.41],
+  "mcts_sims_per_sec": [726.20, 705.77, 686.17, 718.79, 710.26],
+  "peak_ram_mb": [1941.75, 2226.48, 2227.07, 2525.87, 2525.87],
+  "cache_hit_rate_per_iter": [9.28, 12.07, 10.95, 12.81, 13.71],
+  "gpu_calls_per_iter": [3503, 3256, 3327, 3014, 3127],
+  "avg_gpu_batch_size": [11.53, 9.92, 9.11, 9.23, 9.14],
+  "avg_virtual_loss_collisions_avoided": [0.048, 0.066, 0.078, 0.068, 0.070],
+  "worker_utilization": [90.68, 93.88, 93.55, 91.65, 94.02],
+  "examples_per_worker": [
+    [6216, 6192],
+    [6184, 6232],
+    [6232, 6256],
+    [6264, 6264],
+    [6224, 6264]
+  ],
+  "win_rate_vs_greedy": 0.5
+}
+```
+
+## Revised Summary Statistics
+
+| Metric | Average | Range |
+|--------|---------|-------|
+| Self-play time | `76.90 sec` | `74.75-79.62 sec` |
+| Training time | `111.41 sec` | `41.41-185.56 sec` |
+| Arena time | `86.44 sec` | `73.81-94.70 sec` |
+| GPU utilization | `48.31%` | `37.14-58.41%` |
+| MCTS sims/sec | `709.44` | `686.17-726.20` |
+| Peak RAM | `2289.41 MB` | `1941.75-2525.87 MB` |
+| Cache hit rate | `11.76%` | `9.28-13.71%` |
+| GPU calls per iter | `3245.40` | `3014-3503` |
+| Avg GPU batch size | `9.79` | `9.11-11.53` |
+| Worker utilization | `92.76%` | `90.68-94.02%` |
+| Avg virtual-loss diversions | `0.066` | `0.048-0.078` |
+
+Average total iteration time was `274.76 sec`, increasing from `210.86 sec` in iteration 1 to `336.29 sec` in iteration 5.
+
+## Revised Comparison
+
+| Metric | Technique C Final | Historical D | Revised D | Result |
+|--------|-------------------|--------------|-----------|--------|
+| Avg self-play time | ~`59.83 sec` | ~`60.68 sec` | `76.90 sec` | Revised D slower |
+| Avg MCTS sims/sec | ~`1683.67` | ~`902.87` | `709.44` | Revised D lowest |
+| Avg GPU utilization | ~`50.61%` | ~`52.27%` | `48.31%` | Revised D slightly lower |
+| Avg GPU batch size | ~`11.17` | ~`9.35` | `9.79` | Revised D better than historical D, below C |
+| Avg GPU calls per iter | ~`2980.40` | ~`3783.80` | `3245.40` | Revised D improves historical D, still above C |
+| Peak RAM iter 5 | `2620.96 MB` | `2402.82 MB` | `2525.87 MB` | Revised D below C |
+| Worker utilization | N/A | ~`90.64%` | `92.76%` | Workers active |
+| Win rate vs greedy | `1.0` | `0.3` | `0.5` | Revised D improved but still worse than C |
+
+## Revised Analysis
+
+The revised architecture fixed the main design flaw from the historical run: workers no longer compete with separate CUDA contexts, and the main process now owns the GPU inference path. This improved some GPU-side indicators:
+
+1. **GPU call count improved versus historical D**
+   - Historical D averaged about `3784` GPU calls per iteration.
+   - Revised D averaged about `3245`, so parent-side coalescing and caching helped.
+
+2. **Average batch size improved versus historical D**
+   - Historical D averaged about `9.35`.
+   - Revised D averaged about `9.79`.
+   - This confirms that parent-owned inference forms somewhat better global batches than two independent worker inference streams.
+
+3. **Worker utilization stayed high**
+   - Worker utilization averaged `92.76%`.
+   - Example counts remained balanced between the two workers.
+   - The slowdown is not caused by idle workers or bad episode splitting.
+
+However, the revised design still does not improve end-to-end self-play speed:
+
+1. **IPC latency moved into the MCTS hot path**
+   - Workers now block on parent inference responses for leaf expansion.
+   - Every neural leaf evaluation crosses process boundaries.
+   - On Colab's 2-core CPU, queue serialization, scheduling, and synchronization can cost more than the saved CUDA contention.
+
+2. **CPU-side MCTS throughput got worse**
+   - Revised D averaged only `709` MCTS sims/sec.
+   - Historical D averaged about `903`.
+   - Technique C averaged about `1684`.
+   - This confirms the bottleneck is Python-side traversal, game logic, and IPC coordination, not raw GPU inference.
+
+3. **Global batching is still weaker than Technique C**
+   - Revised D average batch size was `9.79`, below Technique C's `11.17`.
+   - GPU calls were still higher than Technique C.
+   - Parent coalescing helps, but the request/response rhythm does not match the simpler in-process lockstep loop.
+
+4. **Quality improved but did not recover**
+   - Win rate improved from historical D's `0.3` to `0.5`.
+   - It still missed Technique C's `1.0`, so the revised architecture is not yet quality-equivalent.
+
+## Updated Recommendation
+
+Technique D remains a negative multiprocessing result for this Colab T4 setup.
+
+The revised architecture is conceptually better than two CUDA workers and should be preferred if multiprocessing is kept, but the measured run shows that process IPC and CPU-side MCTS overhead dominate. For the current project constraints, Technique C remains the best result because it is simpler, faster, and quality-preserving.
+
+Further Technique D work should only continue after profiling the revised hot path:
+
+- parent inference queue wait time
+- request serialization/deserialization time
+- worker time spent waiting for inference responses
+- `_select_action` and virtual-loss bookkeeping time
+- `getValidMoves`, `getNextState`, `getGameEnded`, and `stringRepresentation` time
+
+If the goal is speed on 2-core Colab, focus on optimizing Technique C's in-process CPU hot path before adding more multiprocessing. If the goal is distributed self-play on a larger CPU machine, Technique D may become useful with more workers, larger batches, and lower relative IPC overhead.
 
 ## Conclusion
 
-Technique D successfully demonstrates two-process parallel self-play with Colab-safe `spawn`, balanced worker output, and iteration checkpointing. However, it fails the main performance and quality goals. It does not beat Technique C in self-play speed, reduces MCTS throughput, increases GPU call count, and produces a weaker model.
+Technique D successfully demonstrates two-process parallel self-play with Colab-safe `spawn`, balanced worker output, iteration checkpointing, and parent-owned GPU inference. The revised architecture fixed CUDA contention, reduced GPU calls compared with the historical D run, and improved win rate from `0.3` to `0.5`.
 
-Final verdict: functional but not recommended. Technique C should remain the primary optimization.
+It still fails the main performance goal. Revised D self-play averaged `76.90 sec`, MCTS throughput dropped to `709` sims/sec, and quality remained below Technique C.
+
+Final verdict: functional and architecturally cleaner than historical D, but still not recommended for Colab T4. Technique C should remain the primary optimization.

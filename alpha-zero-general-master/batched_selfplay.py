@@ -5,6 +5,7 @@ import torch
 from tqdm import tqdm
 
 from MCTS import EPS, MCTS, MCTSNode
+from optimization_utils import LRUCache, NumpyArrayPool
 
 try:
     import profiler
@@ -25,8 +26,16 @@ class BatchedSelfPlayWorker:
         self.predictor = predictor
         self.num_actions = self.game.getActionSize()
         self.nodes = {}
-        self.terminal_cache = {}
-        self.nn_cache = {}
+        terminal_cache_capacity = int(getattr(self.args, "terminalCacheMaxSize", 250000))
+        nn_cache_capacity = int(getattr(self.args, "nnCacheMaxSize", 500000))
+        action_pool_size = int(getattr(self.args, "actionArrayPoolSize", 512))
+        self.terminal_cache = LRUCache(capacity=terminal_cache_capacity)
+        self.nn_cache = LRUCache(capacity=nn_cache_capacity)
+        self._action_counts_pool = NumpyArrayPool(
+            shape=(self.num_actions,),
+            dtype=np.float64,
+            pool_size=action_pool_size,
+        )
         self.cache_hits = 0
         self.cache_misses = 0
         self.gpu_batch_boards = 0
@@ -206,8 +215,9 @@ class BatchedSelfPlayWorker:
                 self._backup_path(path, -terminal_value)
                 return None
 
-            if s in self.nn_cache:
-                pi, value = self.nn_cache[s]
+            cached = self.nn_cache.get(s)
+            if cached is not None:
+                pi, value = cached
                 self.cache_hits += 1
                 self._expand_leaf(mcts, board, s, pi)
                 self._backup_path(path, -value)
@@ -223,14 +233,14 @@ class BatchedSelfPlayWorker:
     def _complete_leaf(self, request, pi, value):
         value = float(np.ravel(value)[0])
 
-        if request["board_string"] not in self.nn_cache:
+        if self.nn_cache.get(request["board_string"]) is None:
             self.cache_misses += 1
             self.nn_cache[request["board_string"]] = (np.array(pi), value)
 
             sym = self.game.getSymmetries(request["board"], pi)
             for sym_board, sym_pi in sym:
                 sym_s = self.game.stringRepresentation(sym_board)
-                if sym_s not in self.nn_cache:
+                if self.nn_cache.get(sym_s) is None:
                     self.nn_cache[sym_s] = (np.array(sym_pi), value)
 
         self._expand_leaf(request["mcts"], request["board"], request["board_string"], pi)
@@ -286,22 +296,30 @@ class BatchedSelfPlayWorker:
     def _get_action_prob(self, mcts, canonical_board, temp=1):
         s = self.game.stringRepresentation(canonical_board)
         node = mcts.nodes.get(s)
-        counts = node.N.copy() if node is not None else np.zeros(self.num_actions, dtype=np.int32)
+        counts = self._action_counts_pool.acquire()
+        if node is None:
+            counts.fill(0)
+        else:
+            np.copyto(counts, node.N, casting="unsafe")
 
         if temp == 0:
             best_actions = np.argwhere(counts == np.max(counts)).flatten()
             best_action = np.random.choice(best_actions)
             probs = np.zeros_like(counts)
             probs[best_action] = 1
+            self._action_counts_pool.release(counts)
             return probs.tolist()
 
-        counts = counts ** (1.0 / temp)
-        counts_sum = counts.sum()
+        np.power(counts, 1.0 / temp, out=counts)
+        counts_sum = float(counts.sum())
         if counts_sum == 0:
+            self._action_counts_pool.release(counts)
             valids = self.game.getValidMoves(canonical_board, 1)
             return (valids / np.sum(valids)).tolist()
 
-        return (counts / counts_sum).tolist()
+        probs = (counts / counts_sum).tolist()
+        self._action_counts_pool.release(counts)
+        return probs
 
     def _batched_predict(self, boards):
         if self.predictor is not None:

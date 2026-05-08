@@ -125,7 +125,7 @@ class Coach():
 
             # The NN cache is valid only for the current network weights.
             self.mcts = MCTS(self.game, self.nnet, self.args)
-            self.mcts.nn_cache = {}
+            self.mcts.nn_cache.clear()
             log.info(f'MCTS NN cache reset for Iter #{i}; cache size = {len(self.mcts.nn_cache)}')
 
             # Start profiling for this iteration

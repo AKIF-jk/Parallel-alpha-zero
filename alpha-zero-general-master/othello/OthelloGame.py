@@ -3,6 +3,7 @@ import sys
 sys.path.append('..')
 from Game import Game
 from .OthelloLogic import Board
+from optimization_utils import ZobristHash
 import numpy as np
 
 class OthelloGame(Game):
@@ -16,13 +17,15 @@ class OthelloGame(Game):
     def getSquarePiece(piece):
         return OthelloGame.square_content[piece]
 
-    def __init__(self, n):
+    def __init__(self, n, use_zobrist=True, zobrist_seed=42):
         self.n = n
+        self.use_zobrist = bool(use_zobrist)
+        self.zobrist_hash = ZobristHash(board_size=n, seed=zobrist_seed) if self.use_zobrist else None
 
     def getInitBoard(self):
         # return initial board (numpy board)
         b = Board(self.n)
-        return np.array(b.pieces)
+        return np.array(b.pieces, dtype=np.int8)
 
     def getBoardSize(self):
         # (a,b) tuple
@@ -38,7 +41,7 @@ class OthelloGame(Game):
         if action == self.n*self.n:
             return (board, -player)
         b = Board(self.n)
-        b.pieces = np.copy(board)
+        b.pieces = np.array(board, copy=True, dtype=np.int8)
         move = (int(action/self.n), action%self.n)
         b.execute_move(move, player)
         return (b.pieces, -player)
@@ -47,7 +50,7 @@ class OthelloGame(Game):
         # return a fixed size binary vector
         valids = [0]*self.getActionSize()
         b = Board(self.n)
-        b.pieces = np.copy(board)
+        b.pieces = board
         legalMoves =  b.get_legal_moves(player)
         if len(legalMoves)==0:
             valids[-1]=1
@@ -60,7 +63,7 @@ class OthelloGame(Game):
         # return 0 if not ended, 1 if player 1 won, -1 if player 1 lost
         # player = 1
         b = Board(self.n)
-        b.pieces = np.copy(board)
+        b.pieces = board
         if b.has_legal_moves(player):
             return 0
         if b.has_legal_moves(-player):
@@ -90,7 +93,9 @@ class OthelloGame(Game):
         return l
 
     def stringRepresentation(self, board):
-        return board.tobytes()
+        if self.zobrist_hash is None:
+            return board.tobytes()
+        return self.zobrist_hash.hash_board(board)
 
     def stringRepresentationReadable(self, board):
         board_s = "".join(self.square_content[square] for row in board for square in row)
@@ -98,7 +103,7 @@ class OthelloGame(Game):
 
     def getScore(self, board, player):
         b = Board(self.n)
-        b.pieces = np.copy(board)
+        b.pieces = board
         return b.countDiff(player)
 
     @staticmethod

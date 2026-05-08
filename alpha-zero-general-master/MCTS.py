@@ -3,6 +3,8 @@ import math
 
 import numpy as np
 
+from optimization_utils import LRUCache, NumpyArrayPool
+
 EPS = 1e-8
 
 try:
@@ -37,7 +39,14 @@ class MCTS():
         self.args = args
         self.num_actions = self.game.getActionSize()
         self.nodes = {}  # maps board string s -> MCTSNode
-        self.nn_cache = {}  # board_string -> (policy_np_array, value_float)
+        cache_capacity = int(getattr(self.args, "nnCacheMaxSize", 500000))
+        self.nn_cache = LRUCache(capacity=cache_capacity)  # board_key -> (policy_np_array, value_float)
+        action_pool_size = int(getattr(self.args, "actionArrayPoolSize", 256))
+        self._action_counts_pool = NumpyArrayPool(
+            shape=(self.num_actions,),
+            dtype=np.float64,
+            pool_size=action_pool_size,
+        )
         self.cache_hits = 0
         self.cache_misses = 0
 
@@ -69,21 +78,28 @@ class MCTS():
 
         s = self.game.stringRepresentation(canonicalBoard)
         node = self.nodes.get(s)
+        counts = self._action_counts_pool.acquire()
         if node is None:
-            counts = np.zeros(self.num_actions, dtype=np.int32)
+            counts.fill(0)
         else:
-            counts = node.N.copy()  # per-action visit counts
+            np.copyto(counts, node.N, casting="unsafe")
 
         if temp == 0:
             bestAs = np.argwhere(counts == np.max(counts)).flatten()
             bestA = np.random.choice(bestAs)
             probs = np.zeros_like(counts)
             probs[bestA] = 1
+            self._action_counts_pool.release(counts)
             return probs.tolist()
         
-        counts = counts ** (1. / temp)
-        counts_sum = counts.sum()
+        np.power(counts, 1.0 / temp, out=counts)
+        counts_sum = float(counts.sum())
+        if counts_sum == 0:
+            self._action_counts_pool.release(counts)
+            valids = self.game.getValidMoves(canonicalBoard, 1)
+            return (valids / np.sum(valids)).tolist()
         probs = counts / counts_sum
+        self._action_counts_pool.release(counts)
         return probs.tolist()
 
     def search(self, canonicalBoard):
@@ -113,8 +129,9 @@ class MCTS():
 
         # Handle leaf node
         if s not in self.nodes:
-            if s in self.nn_cache:
-                ps, v = self.nn_cache[s]
+            cached = self.nn_cache.get(s)
+            if cached is not None:
+                ps, v = cached
                 self.cache_hits += 1
             else:
                 ps, v = self.nnet.predict(canonicalBoard)
@@ -124,7 +141,7 @@ class MCTS():
                 sym = self.game.getSymmetries(canonicalBoard, ps)
                 for sym_board, sym_ps in sym:
                     sym_s = self.game.stringRepresentation(sym_board)
-                    if sym_s not in self.nn_cache:
+                    if self.nn_cache.get(sym_s) is None:
                         self.nn_cache[sym_s] = (np.array(sym_ps), v)
                 self.cache_misses += 1
 
