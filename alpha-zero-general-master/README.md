@@ -36,6 +36,24 @@ Example:
 python3 profile_phase1.py --positions 64 --sims 32 --threads 4
 ```
 
+### Phase 3 C++ Bitboard (8x8)
+An optional C++ backend is available at `othello/othello_bitboard.cpp` (pybind11 module name: `othello_bitboard`).
+
+Build from repo root:
+```bash
+c++ -O3 -Wall -shared -std=c++17 -fPIC \
+  $(python3 -m pybind11 --includes) \
+  othello/othello_bitboard.cpp \
+  -o othello_bitboard$(python3-config --extension-suffix)
+```
+
+Enable in Python:
+```python
+g = OthelloGame(8, use_bitboard=True)
+```
+
+If the module is missing, `OthelloGame` automatically falls back to the Python logic.
+
 ### Docker Installation
 For easy environment setup, we can use [nvidia-docker](https://github.com/NVIDIA/nvidia-docker). Once you have nvidia-docker set up, we can then simply run:
 ```
