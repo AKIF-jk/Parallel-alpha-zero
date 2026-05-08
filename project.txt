@@ -1,0 +1,410 @@
+Parallel and Distributed Computing
+(CS-3006)
+Research-Based Semester Project
+Spring 2026
+1. Project Overview
+The semester project is designed to give students hands-on experience with a real research
+problem in the area of Parallel and Distributed Computing (PDC). Each group will select
+one research paper from an approved list and use that paper as the base reference for a
+scoped implementation and performance-oriented study.
+The project focuses on the concepts studied in the course specially parallelization strat-
+egy, and computational performance. Students are expected to:
+1. understand the computational problem and its relevance,
+2. study the core idea proposed in the paper,
+3. identify an implementable scope and a potential gap or opportunity for improvement,
+4. explore suitable optimizations or parallelization strategies within the level of this
+course, and propose the solution (Methodology)
+5. implement the solution and perform necessary experiments to test your hypothesis.
+6. evaluate behavior through experiments and technical analysis.
+7. write report in the form of paper draft.
+The project should demonstrate clear understanding of the relationship between al-
+gorithm design and system performance, specifically regarding decomposition, work-
+load characteristics, memory behavior, parallel execution, and bottlenecks that influence
+speedup and efficiency.
+2. Project Theme and Expected Directions
+The project must remain centered on computational performance, scalability, and
+parallelization. Suitable directions include, but are not limited to:
+1• SIMD intrinsics and vectorization
+• Parallel algorithm design (shared memory)
+• Distributed algorithm design (message passing)
+• GPU acceleration (OpenCL / OpenCL)
+• Hybrid solutions (e.g., MPI + OpenMP + SIMD)
+• Memory optimization and cache-aware computation
+• Task scheduling and load balancing
+• Data locality and memory hierarchy optimization
+• Fault tolerance in distributed systems
+• Performance benchmarking and bottleneck analysis
+• Scalability and efficiency studies
+The selected paper must clearly relate to at least one of the above directions.
+3. Group Formation
+The project will be completed in groups of two students only of the same section. Both
+members are expected to contribute equally to reading, implementation, experimentation,
+and presentation. During evaluations, both students must be able to explain the selected
+paper, the implementation scope, and the performance results.
+4. Base Paper Selection
+A Google Sheet containing the list of approved papers is shared on GCR. Each group
+must select one paper from this list as its base paper.
+The provided papers have been carefully curated to ensure relevance to the course, ap-
+propriate technical depth, and diversity across different areas of Parallel and Distributed
+Computing. However, the responsibility of selecting a suitable paper lies with the group.
+The chosen paper must satisfy the following criteria:
+• it must be clearly aligned with the core themes of the course (parallelism, performance,
+scalability, or optimization),
+2• it must be technically meaningful and sufficiently understood by both group members,
+• it must be feasible to study, scope, and implement within the given project timeline.
+The selected paper serves as the conceptual foundation. Students are encouraged to un-
+derstand the original problem, identify the central contribution, recognize computational
+challenges, and define a realistic project direction inspired by that work.
+5. Project Timeline
+The project timeline below provides the high-level schedule and milestone deadlines:
+Week
+& Milestone
+Week 1
+Milestone-1:
+Project Selection
+April 21, 2026
+Activity
+• Browse the approved paper list
+• Read and understand the chosen paper
+• Submit paper selection via Google Form (by end of Day 3)
+• Begin deeper reading and code exploration.
+Week 2
+Milestone-2:
+Paper Presenta-
+tion
+Week 3
+Milestone-3:
+Final submission
+May 08, 2026
+• Prepare short 5 minutes presentation to demonstrate under-
+standing of the paper.
+• Baseline implementation and start implementing proposed ap-
+proach (You can begin implementation as soon as you are con-
+fident about your proposed approach, you can incorporate the
+suggestions after your paper presentation.)
+• Complete implementation (parallel / optimized) version
+• Perform experiments (baseline & your approach) and collect
+results
+• Complete result evaluation (performance, speedup, efficiency,
+scalability)
+• Write final report, prepare final presentation slides & video
+(introduction of problem/domain, identified gap, proposed ap-
+proach, experimental setup, experiments, results, conclusion)
+• Submit code, report, presentation slides, video (Youtube or
+Google Drive link only)
+• Final Presentation and Defense
+36. Milestone 1: Project Selection (Week 1, Due Day 3)
+Each group must submit its selected paper using the Google Form shared on Google
+Classroom within the first three days.
+The form submission must include:
+1. Names and roll numbers of both group members
+2. Selected base paper title (from the approved list)
+3. A brief description (150–250 words) covering:
+• What problem does the paper address?
+• What is the core computational or parallelization idea?
+• Why did you choose this paper?
+Note: A vague or generic summary will indicate weak understanding and may result in
+the group being asked to revise or change their selection.
+7. Milestone 2: Paper Understanding Presentation (Week 2)
+Each group will present (or submit recording) its selected paper in Week 2. This mile-
+stone verifies that the group has genuinely understood the paper and has a technically
+sound plan for the project.
+The presentation should cover:
+1. Introduction: What is the problem area and why is it important?
+2. Core Idea: What is the central contribution of the paper, understanding (according
+to the problem):
+• What kind of parallelism exists in the problem?
+• What parallelization strategy (at different stages studied in the class, from de-
+composition to orchestration) is opted?
+• How Data Locality/Cache Utilization is handled?
+3. Approach: How does the paper solve the problem? What parallelization / optimiza-
+tion strategy is used?
+44. Gap / Opportunity: What limitation, simplification, or further opportunity do you
+identify?
+5. Proposed Aproach: What part will you implement, adapt, optimize, or evaluate?
+6. Preliminary Plan: Tools, languages, platforms, and rough implementation plan.
+Groups should be prepared to answer technical questions (as discussed in the course)
+such as:
+• What kind of parallelism exists in this problem?
+• Where is the expected bottleneck?
+• Is the workload compute-bound, memory-bound, or communication-bound?
+• What part of the paper is realistic to implement at this course level?
+8. Milestone 3: Final Presentation and Submission (Week 3)
+The complete project will be submitted by the end of week 3. The final presentation
+will be held between 11-13 May. Each group must present the complete project outcome.
+The final presentation should include:
+1. Brief recap of the selected base paper
+2. Clearly defined project scope
+3. Implementation details (languages, tools, architecture)
+4. Baseline method (sequential or reference)
+5. Optimization or parallelization (and Correctness verification) approach
+6. Results
+• Critical Analysis of the results in terms of performance measurements.
+• Present comparison (speedup, efficiency, and/or scalability)
+• Analyze performance trends, bottlenecks, and limitations, and reflect on devia-
+tions from expected behavior
+7. LLM Usage Disclosure and Reflection (Document where and how LLMs were used,
+including representative prompts, benefits, and limitations)
+58. Reflect on correctness issues, risks of over-reliance, and ensure transparency and aca-
+demic integrity”
+9. Conclusions
+10. References
+A live demonstration would be required where applicable.
+9. Expected Technical Focus
+Since this is a PDC project, technical evaluation will particularly value evidence of
+thoughtful work in:
+• Problem decomposition (data vs. task parallelism)
+• Work distribution and load balancing
+• Synchronization and communication considerations
+• Vectorization / SIMD opportunities
+• Memory layout, locality, and cache-aware design
+• Scheduling choices and their impact
+• Bottleneck identification (compute, memory, communication)
+• Speedup and efficiency analysis
+• Robustness and reproducibility of results
+Students are expected to go beyond simply reporting execution times. Strong projects
+will explain why performance improves or fails to improve.
+10. Deliverables
+At the end of the project (Week 3), each group must submit:
+1. Final project report (see suggested structure below)
+2. Complete source code
+63. Presentation slides
+4. README with build and execution instructions
+5. Any scripts, datasets, or configuration files needed to reproduce results
+11. Suggested Report Structure
+1. Introduction
+2. Base Paper and Problem Context
+3. Project Scope and Objectives
+4. Baseline Method
+5. Proposed Parallel / Optimized Approach
+6. Experimental Setup (hardware, compiler, flags, input sizes)
+7. Results and Discussion (speedup, efficiency, scalability charts)
+8. Conclusion
+9. References
+12. Evaluation Rubric
+The project will be evaluated using the following objective-based rubric. Each component
+is assessed on a 4-level scale. The total project carries 100 marks.
+CriterionWeightExcellent
+(100%)Good (75%)Satisfactory
+(50%)Poor (25%)
+Milestone 1:
+Paper Selection
+& Initial Under-
+standing10Clear, specific
+understand-
+ing of prob-
+lem and PDC
+relevance;
+well-justified
+paper choiceGood
+un-
+derstanding
+with
+minor
+gaps; reason-
+able selection
+justificationGeneric
+or
+shallow un-
+derstanding;
+selection
+lacks
+clear
+justificationMissing,
+vague,
+or
+copied
+de-
+scription;
+no
+evident
+reading of the
+paper
+7CriterionWeightExcellent
+(100%)Good (75%)Satisfactory
+(50%)Poor
+25%)
+Milestone 2:
+Paper Presen-
+tation & Gap
+Analysis10Deep under- Solid
+un-
+standing
+of derstanding;
+paper; clearly gap
+identi-
+articulated
+fied but not
+gap/opportunity;thoroughly
+feasible and analyzed;
+well-thought
+reasonable
+plan
+planSurface-level
+understand-
+ing; gap is
+vague
+or
+generic; plan
+is unclearCannot
+ex-
+plain
+the
+paper;
+no
+meaningful
+gap identified;
+no plan
+Baseline Im-
+plementation10Correct
+sequen-
+tial/reference
+implementa-
+tion;
+clean
+code; verified
+outputWorking
+baseline with
+minor issues;
+mostly correctPartially
+working
+baseline; sig-
+nificant bugs
+or incompleteNo baseline
+or
+non-
+functional
+code
+Parallel / Op-
+timized Imple-
+mentation25Well-designed
+paralleliza-
+tion;
+cor-
+rect use of
+PDC
+tools
+(OpenMP
+/MPI
+/OpenCL
+/SIMD);
+clean
+and
+documented
+codeWorking par-
+allel version
+with
+minor
+design issues;
+correct tool
+usagePartially
+parallel;
+significant
+design flaws;
+limited use of
+PDC toolsNo
+parallel
+implemen-
+tation
+or
+trivially par-
+allelized with
+no meaningful
+change
+8
+(0-CriterionWeightExcellent
+(100%)Good (75%)Satisfactory
+(50%)Poor
+25%)
+Performance
+Evaluation &
+Analysis20Comprehensive Good
+anal-
+speedup /ef- ysis
+with
+ficiency anal- speedup num-
+ysis; multiple bers;
+some
+input
+sizes; charts; partial
+clear charts; explanation
+explains why
+performance
+changesLimited anal-
+ysis; few mea-
+surements; no
+explanation of
+trendsNo
+perfor-
+mance data or
+meaningless
+measurements
+Final Report
+Quality15Well-
+structured;
+complete
+sections;
+professional
+writing; clear
+figures
+and
+tablesGood struc-
+ture; mostly
+complete;
+minor writing
+issuesDisorganized;
+missing sec-
+tions; hard to
+followIncomplete or
+incoherent re-
+port
+Final Presen-
+tation & Tech-
+nical Defense10Clear, well-
+organized
+presentation;
+both members
+explain confi-
+dently; strong
+answers
+to
+questionsGood presen-
+tation; both
+contribute;
+adequate
+answersWeak
+pre-
+sentation;
+one member
+dominates;
+poor answersUnprepared;
+cannot
+ex-
+plain
+own
+work
+Total
+100 marks
+13. Academic Integrity
+Students must maintain academic honesty throughout the project. Reading research
+papers, consulting documentation, and using libraries appropriately are all acceptable.
+However, submitted work must reflect genuine understanding.
+• Any external code, reused implementation, or borrowed idea must be acknowledged
+9
+(0-properly.
+• Using the paper’s provided baseline code is expected and acceptable, students must
+clearly distinguish their contributions from the baseline.
+• During evaluation, both group members must be able to explain the submitted work.
+Inability to explain key parts may negatively affect the evaluation.
+• Plagiarism or submission of work not done by the group will result in disciplinary
+action.
+14. Instructions
+• Each group must consist of exactly two members.
+• The base paper must be selected from the approved list (unless you get approval from
+your instructor) using the shared Google Sheet.
+• Follow the milestone deadlines as mentioned in the provided table.
+• The project must include implementation, empirical analysis. Presentation-only
+work is insufficient.
+• Late submissions will incur a penalty as per course policy.
+Good Luck!
+10
