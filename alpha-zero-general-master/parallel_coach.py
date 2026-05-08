@@ -31,35 +31,168 @@ def _model_module(nnet):
     return model
 
 
-def worker_fn(worker_id, game, nnet, args, result_queue):
+class QueuePredictor:
+    """Worker-side synchronous RPC client for main-process NN inference."""
+
+    def __init__(self, worker_id, prediction_queue, response_queue):
+        self.worker_id = worker_id
+        self.prediction_queue = prediction_queue
+        self.response_queue = response_queue
+        self.request_id = 0
+
+    def __call__(self, boards):
+        self.request_id += 1
+        boards = np.asarray(boards, dtype=np.float32)
+        self.prediction_queue.put((self.worker_id, self.request_id, boards))
+        response_id, policies, values = self.response_queue.get()
+        if response_id != self.request_id:
+            raise RuntimeError(
+                f"Worker {self.worker_id} received stale inference response "
+                f"{response_id}; expected {self.request_id}"
+            )
+        return policies, values
+
+
+def worker_fn(worker_id, game, args, prediction_queue, response_queue, result_queue, num_games):
     """Function run in each worker process."""
     torch.set_num_threads(1)
     started_at = time.perf_counter()
 
-    worker = BatchedSelfPlayWorker(game, nnet, args)
-    examples = worker.execute_batch(args.numEps // 2)
+    try:
+        predictor = QueuePredictor(worker_id, prediction_queue, response_queue)
+        worker = BatchedSelfPlayWorker(game, None, args, predictor=predictor)
+        examples = worker.execute_batch(num_games)
 
-    elapsed = time.perf_counter() - started_at
-    cache_stats = worker.cache_stats()
-    batch_stats = worker.batch_stats()
-    result_queue.put((
-        worker_id,
-        examples,
-        {
-            "elapsed_sec": elapsed,
-            "example_count": len(examples),
-            "cache_stats": cache_stats,
-            "batch_stats": batch_stats,
-        },
-    ))
+        elapsed = time.perf_counter() - started_at
+        cache_stats = worker.cache_stats()
+        batch_stats = worker.batch_stats()
+        result_queue.put((
+            worker_id,
+            examples,
+            {
+                "elapsed_sec": elapsed,
+                "example_count": len(examples),
+                "cache_stats": cache_stats,
+                "batch_stats": batch_stats,
+                "num_games": num_games,
+            },
+            None,
+        ))
+    except Exception:
+        import traceback
+        result_queue.put((worker_id, [], {}, traceback.format_exc()))
+
+
+def _batched_model_predict(nnet, boards):
+    model = _model_module(nnet)
+    device = next(model.parameters()).device
+    batch = torch.as_tensor(np.asarray(boards, dtype=np.float32), device=device)
+
+    model.eval()
+    with torch.no_grad():
+        batch_pi, batch_v = model(batch)
+
+    return torch.exp(batch_pi).data.cpu().numpy(), batch_v.data.cpu().numpy().reshape(-1)
+
+
+def _serve_prediction_requests(
+    first_request,
+    prediction_queue,
+    response_queues,
+    game,
+    nnet,
+    args,
+    stats,
+    inference_cache,
+):
+    """
+    Coalesce worker inference requests into one main-process model call.
+
+    Workers do CPU-side MCTS and block here only for leaf evaluation. Keeping
+    CUDA in the parent process avoids multiple CUDA contexts contending for the
+    same GPU and lets requests from all workers form one larger batch.
+    """
+    requests = [first_request]
+    wait_sec = float(getattr(args, "inferenceBatchWaitSec", 0.003))
+    deadline = time.perf_counter() + wait_sec
+
+    while time.perf_counter() < deadline:
+        timeout = max(0.0, deadline - time.perf_counter())
+        try:
+            requests.append(prediction_queue.get(timeout=timeout))
+        except queue.Empty:
+            break
+
+    unique_boards = []
+    unique_keys = []
+    unique_index = {}
+    placements = []
+
+    for worker_id, request_id, boards in requests:
+        request_positions = []
+        for board in boards:
+            board = np.asarray(board, dtype=np.float32)
+            key = game.stringRepresentation(board)
+            cached = inference_cache.get(key)
+            if cached is not None:
+                stats["cache_hits"] += 1
+                request_positions.append(("cache", cached[0], cached[1]))
+                continue
+
+            idx = unique_index.get(key)
+            if idx is None:
+                idx = len(unique_boards)
+                unique_index[key] = idx
+                unique_boards.append(board)
+                unique_keys.append(key)
+            request_positions.append(("gpu", idx))
+        placements.append((worker_id, request_id, request_positions))
+
+    if unique_boards:
+        batch_pi, batch_v = _batched_model_predict(nnet, unique_boards)
+        stats["gpu_calls"] += 1
+        stats["boards_to_gpu"] += len(unique_boards)
+        stats["cache_misses"] += len(unique_boards)
+
+        for idx, board in enumerate(unique_boards):
+            pi = np.asarray(batch_pi[idx], dtype=np.float32)
+            value = float(batch_v[idx])
+            inference_cache.setdefault(unique_keys[idx], (pi, value))
+            for sym_board, sym_pi in game.getSymmetries(board, pi):
+                sym_key = game.stringRepresentation(np.asarray(sym_board, dtype=np.float32))
+                inference_cache.setdefault(
+                    sym_key,
+                    (np.asarray(sym_pi, dtype=np.float32), value),
+                )
+    else:
+        batch_pi = np.empty((0, 0), dtype=np.float32)
+        batch_v = np.empty((0,), dtype=np.float32)
+
+    for worker_id, request_id, request_positions in placements:
+        policies = []
+        values = []
+        for source, payload, *rest in request_positions:
+            if source == "cache":
+                policies.append(payload)
+                values.append(rest[0])
+            else:
+                idx = payload
+                policies.append(batch_pi[idx])
+                values.append(batch_v[idx])
+        policies = np.asarray(policies, dtype=np.float32)
+        values = np.asarray(values, dtype=np.float32)
+        response_queues[worker_id].put((request_id, policies, values))
 
 
 class ParallelCoach:
     """
-    Coach variant for Technique D: two spawned self-play worker processes.
+    Coach variant for Technique D: spawned CPU self-play workers with
+    main-process neural inference.
 
-    Workers only generate examples. Training, arena comparison, checkpointing,
-    and model acceptance/rejection remain in the main process.
+    Workers generate examples and run MCTS traversal. The main process owns the
+    PyTorch model during self-play, batches requests across workers, and keeps
+    training, arena comparison, checkpointing, and model acceptance/rejection
+    in one process.
     """
 
     def __init__(self, game, nnet, args):
@@ -87,30 +220,70 @@ class ParallelCoach:
             total_mcts = 0
             virtual_loss_diversions = 0
             worker_elapsed = []
-            worker_example_counts = [0, 0]
+            num_workers = int(getattr(self.args, "numWorkers", 2))
+            worker_example_counts = [0] * num_workers
 
             if not self.skipFirstSelfPlay or iteration > 1:
-                model = _model_module(self.nnet)
-                model.share_memory()
-
+                base_games = self.args.numEps // num_workers
+                remainder = self.args.numEps % num_workers
                 result_queue = mp.Queue()
+                prediction_queue = mp.Queue()
+                response_queues = [mp.Queue() for _ in range(num_workers)]
                 processes = []
-                for worker_id in range(2):
+                for worker_id in range(num_workers):
+                    num_games = base_games + (1 if worker_id < remainder else 0)
                     process = mp.Process(
                         target=worker_fn,
-                        args=(worker_id, self.game, self.nnet, self.args, result_queue),
+                        args=(
+                            worker_id,
+                            self.game,
+                            self.args,
+                            prediction_queue,
+                            response_queues[worker_id],
+                            result_queue,
+                            num_games,
+                        ),
                     )
                     process.start()
                     processes.append(process)
 
                 worker_results = []
-                while len(worker_results) < 2:
+                inference_stats = {
+                    "gpu_calls": 0,
+                    "boards_to_gpu": 0,
+                    "cache_hits": 0,
+                    "cache_misses": 0,
+                }
+                inference_cache = {}
+                while len(worker_results) < num_workers:
                     try:
-                        worker_results.append(result_queue.get(timeout=30))
+                        result = result_queue.get_nowait()
+                        worker_id, examples, stats, tb = result
+                        if tb:
+                            raise RuntimeError(f"Self-play worker {worker_id} failed:\n{tb}")
+                        worker_results.append((worker_id, examples, stats))
+                        continue
+                    except queue.Empty:
+                        pass
+
+                    try:
+                        request = prediction_queue.get(timeout=0.1)
                     except queue.Empty:
                         dead = [p.exitcode for p in processes if not p.is_alive() and p.exitcode not in (0, None)]
                         if dead:
                             raise RuntimeError(f"Self-play worker exited unexpectedly: {dead}")
+                        continue
+
+                    _serve_prediction_requests(
+                        request,
+                        prediction_queue,
+                        response_queues,
+                        self.game,
+                        self.nnet,
+                        self.args,
+                        inference_stats,
+                        inference_cache,
+                    )
 
                 for process in processes:
                     process.join()
@@ -134,8 +307,6 @@ class ParallelCoach:
                     cache_size += worker_cache["cache_size"]
 
                     worker_batch = stats["batch_stats"]
-                    gpu_calls += worker_batch["total_gpu_calls"]
-                    total_boards_to_gpu += worker_batch["total_boards_to_gpu"]
                     total_mcts += worker_batch["mcts_sim_count"]
                     virtual_loss_diversions += worker_batch.get("virtual_loss_diversions", 0)
 
@@ -146,6 +317,8 @@ class ParallelCoach:
                     "hit_rate_pct": (cache_hits / total_cache * 100) if total_cache > 0 else 0.0,
                     "cache_size": cache_size,
                 }
+                gpu_calls = inference_stats["gpu_calls"]
+                total_boards_to_gpu = inference_stats["boards_to_gpu"]
                 avg_batch_size = total_boards_to_gpu / gpu_calls if gpu_calls > 0 else 0.0
                 avg_vl_collisions = virtual_loss_diversions / total_mcts if total_mcts > 0 else 0.0
 
@@ -158,7 +331,7 @@ class ParallelCoach:
                 self_play_sec = profiler.end_phase("self_play")
                 peak_ram = max(iteration_start_ram, profiler.get_peak_ram_mb())
                 worker_util = (
-                    sum(worker_elapsed) / (2 * self_play_sec) * 100
+                    sum(worker_elapsed) / (num_workers * self_play_sec) * 100
                     if self_play_sec > 0 and worker_elapsed else 0.0
                 )
                 profiler.start_phase("train")

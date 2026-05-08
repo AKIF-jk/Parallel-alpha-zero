@@ -254,6 +254,20 @@ That design avoids multiple CUDA contexts and preserves larger global batches. I
 
 For this project, Technique C remains the best implementation because it achieves high batch size, high MCTS throughput, and baseline-quality win rate without multiprocessing overhead.
 
+## Implementation Update
+
+The Technique D implementation has been revised to follow the better architecture above:
+
+- self-play workers now run CPU-side MCTS traversal only
+- the main process owns the PyTorch model during self-play
+- workers send pending leaf boards to a parent inference queue
+- the parent coalesces requests from all workers into one batched model call
+- the parent keeps a lightweight inference cache, including symmetric positions, to reduce duplicate GPU work across workers
+- `gpu_calls_per_iter` and `avg_gpu_batch_size` now report actual parent inference calls
+- `numEps` is distributed across `numWorkers` with remainder handling instead of always using `args.numEps // 2`
+
+The metrics in this document are still the historical two-CUDA-worker run. Re-run `run_technique_d.py` to measure the revised implementation.
+
 ## Conclusion
 
 Technique D successfully demonstrates two-process parallel self-play with Colab-safe `spawn`, balanced worker output, and iteration checkpointing. However, it fails the main performance and quality goals. It does not beat Technique C in self-play speed, reduces MCTS throughput, increases GPU call count, and produces a weaker model.

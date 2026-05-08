@@ -64,6 +64,10 @@ def main():
         'load_model': False,
         'load_folder_file': (checkpoint_dir, 'best.pth.tar'),
         'numItersForTrainExamplesHistory': 20,
+        'numWorkers': 2,
+        # Small wait lets the parent coalesce inference requests from both
+        # workers into a larger single CUDA batch without adding visible delay.
+        'inferenceBatchWaitSec': 0.003,
     })
 
     log.info('Loading %s...', Game.__name__)
@@ -72,7 +76,7 @@ def main():
     nnet = nn(game)
     log.info('Loading the ParallelCoach...')
     coach = ParallelCoach(game, nnet, args)
-    log.info('Starting Technique D training (2-process parallel batched self-play)')
+    log.info('Starting Technique D training (2 CPU workers, main-process batched inference)')
     coach.learn()
 
     metrics = profiler.save_metrics(checkpoint_dir, filename="technique_d_metrics.json")

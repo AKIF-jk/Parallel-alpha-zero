@@ -18,10 +18,11 @@ MAX_STEPS = 200
 
 
 class BatchedSelfPlayWorker:
-    def __init__(self, game, nnet, args):
+    def __init__(self, game, nnet, args, predictor=None):
         self.game = game
         self.nnet = nnet
         self.args = args
+        self.predictor = predictor
         self.num_actions = self.game.getActionSize()
         self.nodes = {}
         self.terminal_cache = {}
@@ -32,10 +33,13 @@ class BatchedSelfPlayWorker:
         self.gpu_batch_calls = 0
         self.mcts_sim_count = 0
         self.virtual_loss_diversions = 0
-        self.model = getattr(self.nnet, "model", None)
-        if self.model is None:
-            self.model = getattr(self.nnet, "nnet")
-        self.device = next(self.model.parameters()).device
+        self.model = None
+        self.device = None
+        if self.predictor is None:
+            self.model = getattr(self.nnet, "model", None)
+            if self.model is None:
+                self.model = getattr(self.nnet, "nnet")
+            self.device = next(self.model.parameters()).device
 
     def execute_batch(self, num_games):
         """
@@ -300,6 +304,9 @@ class BatchedSelfPlayWorker:
         return (counts / counts_sum).tolist()
 
     def _batched_predict(self, boards):
+        if self.predictor is not None:
+            return self.predictor(boards)
+
         batch = torch.as_tensor(np.asarray(boards, dtype=np.float32), device=self.device)
 
         self.model.eval()
