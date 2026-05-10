@@ -1,0 +1,413 @@
+Running all examples can take a long time on Colab T4.
+Example 0: Smoke Test
+------------------------------------------------------------
+2026-05-10 15:55:12,593 - test_technique_c_scalability - INFO - ============================================================
+2026-05-10 15:55:12,593 - test_technique_c_scalability - INFO - Testing batch size scaling: (4, 8, 16)
+2026-05-10 15:55:12,593 - test_technique_c_scalability - INFO - Configuration: num_games=16, sims=10, board_size=6
+2026-05-10 15:55:12,594 - test_technique_c_scalability - INFO - ============================================================
+2026-05-10 15:55:12,594 - test_technique_c_scalability - INFO - Starting test: batch_size_4
+Batched Self Play: 100% 16/16 [00:09<00:00,  1.64it/s]
+2026-05-10 15:55:22,733 - test_technique_c_scalability - INFO - Completed test: batch_size_4 - 9.76s
+2026-05-10 15:55:22,769 - test_technique_c_scalability - INFO - Batch size 4: Throughput=1.64 games/sec, GPU batch size=3.62, Cache hit rate=8.62%
+2026-05-10 15:55:22,770 - test_technique_c_scalability - INFO - Starting test: batch_size_8
+Batched Self Play: 100% 16/16 [00:07<00:00,  2.13it/s]
+2026-05-10 15:55:30,380 - test_technique_c_scalability - INFO - Completed test: batch_size_8 - 7.53s
+2026-05-10 15:55:30,417 - test_technique_c_scalability - INFO - Batch size 8: Throughput=2.12 games/sec, GPU batch size=6.97, Cache hit rate=7.01%
+2026-05-10 15:55:30,418 - test_technique_c_scalability - INFO - Starting test: batch_size_16
+Batched Self Play: 100% 16/16 [00:05<00:00,  2.86it/s]
+2026-05-10 15:55:36,095 - test_technique_c_scalability - INFO - Completed test: batch_size_16 - 5.60s
+2026-05-10 15:55:36,130 - test_technique_c_scalability - INFO - Batch size 16: Throughput=2.86 games/sec, GPU batch size=14.30, Cache hit rate=7.67%
+2026-05-10 15:55:36,130 - test_technique_c_scalability - INFO - 
+================================================================================
+2026-05-10 15:55:36,130 - test_technique_c_scalability - INFO - SCALABILITY TEST SUMMARY
+2026-05-10 15:55:36,130 - test_technique_c_scalability - INFO - ================================================================================
+2026-05-10 15:55:36,130 - test_technique_c_scalability - INFO - 
+BATCH_SIZE:
+2026-05-10 15:55:36,130 - test_technique_c_scalability - INFO - --------------------------------------------------------------------------------
+2026-05-10 15:55:36,130 - test_technique_c_scalability - INFO -                     16: Games/sec=    2.86, Time=    5.60s, Memory=    95.2MB
+2026-05-10 15:55:36,130 - test_technique_c_scalability - INFO -                      8: Games/sec=    2.12, Time=    7.53s, Memory=    93.4MB
+2026-05-10 15:55:36,130 - test_technique_c_scalability - INFO -                      4: Games/sec=    1.64, Time=    9.76s, Memory=    72.9MB
+2026-05-10 15:55:36,131 - test_technique_c_scalability - INFO - Results saved to results/smoke_test/technique_c_scalability_20260510_155536.json
+Example 1: Finding Optimal Batch Size
+------------------------------------------------------------
+2026-05-10 15:55:36,131 - test_technique_c_scalability - INFO - ============================================================
+2026-05-10 15:55:36,131 - test_technique_c_scalability - INFO - Testing batch size scaling: (4, 8, 12, 16, 24, 32)
+2026-05-10 15:55:36,131 - test_technique_c_scalability - INFO - Configuration: num_games=96, sims=35, board_size=6
+2026-05-10 15:55:36,131 - test_technique_c_scalability - INFO - ============================================================
+2026-05-10 15:55:36,131 - test_technique_c_scalability - INFO - Starting test: batch_size_4
+Batched Self Play: 100% 96/96 [03:05<00:00,  1.93s/it]
+2026-05-10 15:58:41,797 - test_technique_c_scalability - INFO - Completed test: batch_size_4 - 185.59s
+2026-05-10 15:58:42,576 - test_technique_c_scalability - INFO - Batch size 4: Throughput=0.52 games/sec, GPU batch size=3.09, Cache hit rate=12.33%
+2026-05-10 15:58:42,576 - test_technique_c_scalability - INFO - Starting test: batch_size_8
+Batched Self Play: 100% 96/96 [02:28<00:00,  1.55s/it]
+2026-05-10 16:01:11,378 - test_technique_c_scalability - INFO - Completed test: batch_size_8 - 148.74s
+2026-05-10 16:01:12,098 - test_technique_c_scalability - INFO - Batch size 8: Throughput=0.65 games/sec, GPU batch size=6.47, Cache hit rate=11.68%
+2026-05-10 16:01:12,098 - test_technique_c_scalability - INFO - Starting test: batch_size_12
+Batched Self Play: 100% 96/96 [02:19<00:00,  1.46s/it]
+2026-05-10 16:03:31,864 - test_technique_c_scalability - INFO - Completed test: batch_size_12 - 139.70s
+2026-05-10 16:03:32,602 - test_technique_c_scalability - INFO - Batch size 12: Throughput=0.69 games/sec, GPU batch size=9.41, Cache hit rate=11.48%
+2026-05-10 16:03:32,603 - test_technique_c_scalability - INFO - Starting test: batch_size_16
+Batched Self Play: 100% 96/96 [02:07<00:00,  1.33s/it]
+2026-05-10 16:05:40,358 - test_technique_c_scalability - INFO - Completed test: batch_size_16 - 127.69s
+2026-05-10 16:05:41,102 - test_technique_c_scalability - INFO - Batch size 16: Throughput=0.75 games/sec, GPU batch size=12.97, Cache hit rate=11.74%
+2026-05-10 16:05:41,102 - test_technique_c_scalability - INFO - Starting test: batch_size_24
+Batched Self Play: 100% 96/96 [02:01<00:00,  1.26s/it]
+2026-05-10 16:07:42,556 - test_technique_c_scalability - INFO - Completed test: batch_size_24 - 121.39s
+2026-05-10 16:07:43,262 - test_technique_c_scalability - INFO - Batch size 24: Throughput=0.79 games/sec, GPU batch size=18.72, Cache hit rate=12.74%
+2026-05-10 16:07:43,262 - test_technique_c_scalability - INFO - Starting test: batch_size_32
+Batched Self Play: 100% 96/96 [01:56<00:00,  1.22s/it]
+2026-05-10 16:09:40,121 - test_technique_c_scalability - INFO - Completed test: batch_size_32 - 116.79s
+2026-05-10 16:09:40,821 - test_technique_c_scalability - INFO - Batch size 32: Throughput=0.82 games/sec, GPU batch size=26.03, Cache hit rate=12.36%
+2026-05-10 16:09:40,821 - test_technique_c_scalability - INFO - 
+================================================================================
+2026-05-10 16:09:40,821 - test_technique_c_scalability - INFO - SCALABILITY TEST SUMMARY
+2026-05-10 16:09:40,822 - test_technique_c_scalability - INFO - ================================================================================
+2026-05-10 16:09:40,822 - test_technique_c_scalability - INFO - 
+BATCH_SIZE:
+2026-05-10 16:09:40,822 - test_technique_c_scalability - INFO - --------------------------------------------------------------------------------
+2026-05-10 16:09:40,822 - test_technique_c_scalability - INFO -                     32: Games/sec=    0.82, Time=  116.79s, Memory=   105.4MB
+2026-05-10 16:09:40,822 - test_technique_c_scalability - INFO -                     24: Games/sec=    0.79, Time=  121.39s, Memory=   103.7MB
+2026-05-10 16:09:40,822 - test_technique_c_scalability - INFO -                     16: Games/sec=    0.75, Time=  127.69s, Memory=    95.2MB
+2026-05-10 16:09:40,822 - test_technique_c_scalability - INFO -                     12: Games/sec=    0.69, Time=  139.70s, Memory=    94.0MB
+2026-05-10 16:09:40,822 - test_technique_c_scalability - INFO -                      8: Games/sec=    0.65, Time=  148.74s, Memory=    93.4MB
+2026-05-10 16:09:40,822 - test_technique_c_scalability - INFO -                      4: Games/sec=    0.52, Time=  185.59s, Memory=    72.9MB
+2026-05-10 16:09:40,823 - test_technique_c_scalability - INFO - Results saved to results/batch_size_tuning/technique_c_scalability_20260510_160940.json
+
+Example 2: Assessing Throughput Stability
+------------------------------------------------------------
+2026-05-10 16:09:40,824 - test_technique_c_scalability - INFO - ============================================================
+2026-05-10 16:09:40,824 - test_technique_c_scalability - INFO - Testing number of games scaling: (16, 32, 48, 96, 192)
+2026-05-10 16:09:40,824 - test_technique_c_scalability - INFO - Configuration: batch_size=16, sims=35, board_size=6
+2026-05-10 16:09:40,824 - test_technique_c_scalability - INFO - ============================================================
+2026-05-10 16:09:40,824 - test_technique_c_scalability - INFO - Starting test: num_games_16
+Batched Self Play: 100% 16/16 [00:21<00:00,  1.36s/it]
+2026-05-10 16:10:02,649 - test_technique_c_scalability - INFO - Completed test: num_games_16 - 21.76s
+2026-05-10 16:10:02,778 - test_technique_c_scalability - INFO - Games 16: Throughput=0.74 games/sec, Total time=21.76s, MCTS sims/sec=832
+2026-05-10 16:10:02,778 - test_technique_c_scalability - INFO - Starting test: num_games_32
+Batched Self Play: 100% 32/32 [00:42<00:00,  1.33s/it]
+2026-05-10 16:10:45,344 - test_technique_c_scalability - INFO - Completed test: num_games_32 - 42.50s
+2026-05-10 16:10:45,585 - test_technique_c_scalability - INFO - Games 32: Throughput=0.75 games/sec, Total time=42.50s, MCTS sims/sec=857
+2026-05-10 16:10:45,586 - test_technique_c_scalability - INFO - Starting test: num_games_48
+Batched Self Play: 100% 48/48 [01:03<00:00,  1.32s/it]
+2026-05-10 16:11:49,032 - test_technique_c_scalability - INFO - Completed test: num_games_48 - 63.38s
+2026-05-10 16:11:49,393 - test_technique_c_scalability - INFO - Games 48: Throughput=0.76 games/sec, Total time=63.38s, MCTS sims/sec=856
+2026-05-10 16:11:49,393 - test_technique_c_scalability - INFO - Starting test: num_games_96
+Batched Self Play: 100% 96/96 [02:08<00:00,  1.34s/it]
+2026-05-10 16:13:57,640 - test_technique_c_scalability - INFO - Completed test: num_games_96 - 128.18s
+2026-05-10 16:13:58,558 - test_technique_c_scalability - INFO - Games 96: Throughput=0.75 games/sec, Total time=128.18s, MCTS sims/sec=846
+2026-05-10 16:13:58,558 - test_technique_c_scalability - INFO - Starting test: num_games_192
+Batched Self Play: 100% 192/192 [04:21<00:00,  1.36s/it]
+2026-05-10 16:18:20,232 - test_technique_c_scalability - INFO - Completed test: num_games_192 - 261.56s
+2026-05-10 16:18:21,524 - test_technique_c_scalability - INFO - Games 192: Throughput=0.73 games/sec, Total time=261.56s, MCTS sims/sec=832
+2026-05-10 16:18:21,525 - test_technique_c_scalability - INFO - 
+================================================================================
+2026-05-10 16:18:21,525 - test_technique_c_scalability - INFO - SCALABILITY TEST SUMMARY
+2026-05-10 16:18:21,525 - test_technique_c_scalability - INFO - ================================================================================
+2026-05-10 16:18:21,525 - test_technique_c_scalability - INFO - 
+NUM_GAMES:
+2026-05-10 16:18:21,525 - test_technique_c_scalability - INFO - --------------------------------------------------------------------------------
+2026-05-10 16:18:21,525 - test_technique_c_scalability - INFO -                     16: Games/sec=    0.74, Time=   21.76s, Memory=    95.2MB
+2026-05-10 16:18:21,525 - test_technique_c_scalability - INFO -                     32: Games/sec=    0.75, Time=   42.50s, Memory=    95.2MB
+2026-05-10 16:18:21,525 - test_technique_c_scalability - INFO -                     48: Games/sec=    0.76, Time=   63.38s, Memory=    95.2MB
+2026-05-10 16:18:21,525 - test_technique_c_scalability - INFO -                     96: Games/sec=    0.75, Time=  128.18s, Memory=    95.2MB
+2026-05-10 16:18:21,525 - test_technique_c_scalability - INFO -                    192: Games/sec=    0.73, Time=  261.56s, Memory=    95.2MB
+2026-05-10 16:18:21,526 - test_technique_c_scalability - INFO - Results saved to results/throughput_stability/technique_c_scalability_20260510_161821.json
+
+Example 3: MCTS Simulation Depth Benchmarking
+------------------------------------------------------------
+2026-05-10 16:18:21,527 - test_technique_c_scalability - INFO - ============================================================
+2026-05-10 16:18:21,527 - test_technique_c_scalability - INFO - Testing MCTS simulations scaling: (10, 20, 35, 50, 75)
+2026-05-10 16:18:21,527 - test_technique_c_scalability - INFO - Configuration: num_games=48, batch_size=16, board_size=6
+2026-05-10 16:18:21,527 - test_technique_c_scalability - INFO - ============================================================
+2026-05-10 16:18:21,527 - test_technique_c_scalability - INFO - Starting test: num_sims_10
+Batched Self Play: 100% 48/48 [00:18<00:00,  2.62it/s]
+2026-05-10 16:18:39,954 - test_technique_c_scalability - INFO - Completed test: num_sims_10 - 18.34s
+2026-05-10 16:18:40,072 - test_technique_c_scalability - INFO - Sims 10: MCTS sims/sec=852, Games/sec=2.62, Time per game=0.382s
+2026-05-10 16:18:40,072 - test_technique_c_scalability - INFO - Starting test: num_sims_20
+Batched Self Play: 100% 48/48 [00:35<00:00,  1.36it/s]
+2026-05-10 16:19:15,555 - test_technique_c_scalability - INFO - Completed test: num_sims_20 - 35.42s
+2026-05-10 16:19:15,890 - test_technique_c_scalability - INFO - Sims 20: MCTS sims/sec=879, Games/sec=1.36, Time per game=0.738s
+2026-05-10 16:19:15,890 - test_technique_c_scalability - INFO - Starting test: num_sims_35
+Batched Self Play: 100% 48/48 [01:04<00:00,  1.34s/it]
+2026-05-10 16:20:20,086 - test_technique_c_scalability - INFO - Completed test: num_sims_35 - 64.09s
+2026-05-10 16:20:20,461 - test_technique_c_scalability - INFO - Sims 35: MCTS sims/sec=842, Games/sec=0.75, Time per game=1.335s
+2026-05-10 16:20:20,461 - test_technique_c_scalability - INFO - Starting test: num_sims_50
+Batched Self Play: 100% 48/48 [01:32<00:00,  1.92s/it]
+2026-05-10 16:21:52,784 - test_technique_c_scalability - INFO - Completed test: num_sims_50 - 92.26s
+2026-05-10 16:21:53,334 - test_technique_c_scalability - INFO - Sims 50: MCTS sims/sec=842, Games/sec=0.52, Time per game=1.922s
+2026-05-10 16:21:53,335 - test_technique_c_scalability - INFO - Starting test: num_sims_75
+Batched Self Play: 100% 48/48 [02:20<00:00,  2.92s/it]
+2026-05-10 16:24:13,491 - test_technique_c_scalability - INFO - Completed test: num_sims_75 - 140.09s
+2026-05-10 16:24:14,222 - test_technique_c_scalability - INFO - Sims 75: MCTS sims/sec=830, Games/sec=0.34, Time per game=2.918s
+2026-05-10 16:24:14,222 - test_technique_c_scalability - INFO - 
+================================================================================
+2026-05-10 16:24:14,222 - test_technique_c_scalability - INFO - SCALABILITY TEST SUMMARY
+2026-05-10 16:24:14,222 - test_technique_c_scalability - INFO - ================================================================================
+2026-05-10 16:24:14,223 - test_technique_c_scalability - INFO - 
+NUM_SIMS:
+2026-05-10 16:24:14,223 - test_technique_c_scalability - INFO - --------------------------------------------------------------------------------
+2026-05-10 16:24:14,223 - test_technique_c_scalability - INFO -                     10: Games/sec=    2.62, Time=   18.34s, Memory=    95.2MB
+2026-05-10 16:24:14,223 - test_technique_c_scalability - INFO -                     20: Games/sec=    1.36, Time=   35.42s, Memory=    95.2MB
+2026-05-10 16:24:14,223 - test_technique_c_scalability - INFO -                     35: Games/sec=    0.75, Time=   64.09s, Memory=    95.2MB
+2026-05-10 16:24:14,223 - test_technique_c_scalability - INFO -                     50: Games/sec=    0.52, Time=   92.26s, Memory=    95.2MB
+2026-05-10 16:24:14,223 - test_technique_c_scalability - INFO -                     75: Games/sec=    0.34, Time=  140.09s, Memory=    95.2MB
+2026-05-10 16:24:14,223 - test_technique_c_scalability - INFO - Results saved to results/mcts_depth_benchmark/technique_c_scalability_20260510_162414.json
+
+Example 4: Board Complexity Impact
+------------------------------------------------------------
+2026-05-10 16:24:14,225 - test_technique_c_scalability - INFO - ============================================================
+2026-05-10 16:24:14,225 - test_technique_c_scalability - INFO - Testing board size scaling: (4, 6, 8)
+2026-05-10 16:24:14,225 - test_technique_c_scalability - INFO - Configuration: num_games=32, batch_size=16, sims=20
+2026-05-10 16:24:14,225 - test_technique_c_scalability - INFO - ============================================================
+2026-05-10 16:24:14,225 - test_technique_c_scalability - INFO - Starting test: board_size_4x4
+/usr/local/lib/python3.12/dist-packages/torch/nn/modules/linear.py:124: UserWarning: Initializing zero-element tensors is a no-op
+  init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+Batched Self Play:   0% 0/32 [00:00<?, ?it/s]Error in example: Calculated padded input size per channel: (2 x 2). Kernel size: (3 x 3). Kernel size can't be greater than actual input size
+Traceback (most recent call last):
+  File "/content/Parallel-alpha-zero/alpha-zero-general-master/Parallel-alpha-zero/alpha-zero-general-master/example_technique_c_scalability.py", line 234, in <module>
+    example_fn()
+  File "/content/Parallel-alpha-zero/alpha-zero-general-master/Parallel-alpha-zero/alpha-zero-general-master/example_technique_c_scalability.py", line 100, in example_4_board_complexity_impact
+    tester.test_board_size_scaling(
+  File "/content/Parallel-alpha-zero/alpha-zero-general-master/Parallel-alpha-zero/alpha-zero-general-master/test_technique_c_scalability.py", line 142, in test_board_size_scaling
+    result = self._run_scalability_test(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/content/Parallel-alpha-zero/alpha-zero-general-master/Parallel-alpha-zero/alpha-zero-general-master/test_technique_c_scalability.py", line 207, in _run_scalability_test
+    examples = worker.execute_batch(num_games)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/content/Parallel-alpha-zero/alpha-zero-general-master/Parallel-alpha-zero/alpha-zero-general-master/batched_selfplay.py", line 58, in execute_batch
+    return self._execute_games(num_games)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/content/Parallel-alpha-zero/alpha-zero-general-master/Parallel-alpha-zero/alpha-zero-general-master/batched_selfplay.py", line 131, in _execute_games
+    batch_pi, batch_v = self._batched_predict([request["board"] for request in unique_requests])
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/content/Parallel-alpha-zero/alpha-zero-general-master/Parallel-alpha-zero/alpha-zero-general-master/batched_selfplay.py", line 333, in _batched_predict
+    batch_pi, batch_v = self.model(batch)
+                        ^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/content/Parallel-alpha-zero/alpha-zero-general-master/Parallel-alpha-zero/alpha-zero-general-master/othello/pytorch/OthelloNNet.py", line 45, in forward
+    s = F.relu(self.bn4(self.conv4(s)))                          # batch_size x num_channels x (board_x-4) x (board_y-4)
+                        ^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/conv.py", line 553, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/conv.py", line 548, in _conv_forward
+    return F.conv2d(
+           ^^^^^^^^^
+RuntimeError: Calculated padded input size per channel: (2 x 2). Kernel size: (3 x 3). Kernel size can't be greater than actual input size
+Batched Self Play:   0% 0/32 [00:00<?, ?it/s]
+
+Example 5: Comprehensive Benchmark
+------------------------------------------------------------
+2026-05-10 16:24:14,370 - test_technique_c_scalability - INFO - ============================================================
+2026-05-10 16:24:14,370 - test_technique_c_scalability - INFO - Testing batch size scaling: (8, 16, 24)
+2026-05-10 16:24:14,370 - test_technique_c_scalability - INFO - Configuration: num_games=48, sims=35, board_size=6
+2026-05-10 16:24:14,370 - test_technique_c_scalability - INFO - ============================================================
+2026-05-10 16:24:14,370 - test_technique_c_scalability - INFO - Starting test: batch_size_8
+Batched Self Play: 100% 48/48 [01:15<00:00,  1.56s/it]
+2026-05-10 16:25:29,525 - test_technique_c_scalability - INFO - Completed test: batch_size_8 - 75.09s
+2026-05-10 16:25:29,897 - test_technique_c_scalability - INFO - Batch size 8: Throughput=0.64 games/sec, GPU batch size=6.42, Cache hit rate=11.29%
+2026-05-10 16:25:29,898 - test_technique_c_scalability - INFO - Starting test: batch_size_16
+Batched Self Play: 100% 48/48 [01:05<00:00,  1.36s/it]
+2026-05-10 16:26:35,345 - test_technique_c_scalability - INFO - Completed test: batch_size_16 - 65.38s
+2026-05-10 16:26:35,725 - test_technique_c_scalability - INFO - Batch size 16: Throughput=0.73 games/sec, GPU batch size=12.77, Cache hit rate=10.04%
+2026-05-10 16:26:35,725 - test_technique_c_scalability - INFO - Starting test: batch_size_24
+Batched Self Play: 100% 48/48 [01:00<00:00,  1.27s/it]
+2026-05-10 16:27:36,635 - test_technique_c_scalability - INFO - Completed test: batch_size_24 - 60.84s
+2026-05-10 16:27:37,012 - test_technique_c_scalability - INFO - Batch size 24: Throughput=0.79 games/sec, GPU batch size=19.98, Cache hit rate=11.14%
+2026-05-10 16:27:37,013 - test_technique_c_scalability - INFO - ============================================================
+2026-05-10 16:27:37,013 - test_technique_c_scalability - INFO - Testing number of games scaling: (32, 48, 96)
+2026-05-10 16:27:37,013 - test_technique_c_scalability - INFO - Configuration: batch_size=16, sims=35, board_size=6
+2026-05-10 16:27:37,013 - test_technique_c_scalability - INFO - ============================================================
+2026-05-10 16:27:37,013 - test_technique_c_scalability - INFO - Starting test: num_games_32
+Batched Self Play: 100% 32/32 [00:42<00:00,  1.34s/it]
+2026-05-10 16:28:19,952 - test_technique_c_scalability - INFO - Completed test: num_games_32 - 42.87s
+2026-05-10 16:28:20,326 - test_technique_c_scalability - INFO - Games 32: Throughput=0.75 games/sec, Total time=42.87s, MCTS sims/sec=846
+2026-05-10 16:28:20,326 - test_technique_c_scalability - INFO - Starting test: num_games_48
+Batched Self Play: 100% 48/48 [01:04<00:00,  1.34s/it]
+2026-05-10 16:29:24,797 - test_technique_c_scalability - INFO - Completed test: num_games_48 - 64.36s
+2026-05-10 16:29:25,188 - test_technique_c_scalability - INFO - Games 48: Throughput=0.75 games/sec, Total time=64.36s, MCTS sims/sec=848
+2026-05-10 16:29:25,188 - test_technique_c_scalability - INFO - Starting test: num_games_96
+Batched Self Play: 100% 96/96 [02:10<00:00,  1.36s/it]
+2026-05-10 16:31:35,408 - test_technique_c_scalability - INFO - Completed test: num_games_96 - 130.15s
+2026-05-10 16:31:36,124 - test_technique_c_scalability - INFO - Games 96: Throughput=0.74 games/sec, Total time=130.15s, MCTS sims/sec=833
+2026-05-10 16:31:36,124 - test_technique_c_scalability - INFO - ============================================================
+2026-05-10 16:31:36,124 - test_technique_c_scalability - INFO - Testing MCTS simulations scaling: (20, 35, 50)
+2026-05-10 16:31:36,124 - test_technique_c_scalability - INFO - Configuration: num_games=48, batch_size=16, board_size=6
+2026-05-10 16:31:36,125 - test_technique_c_scalability - INFO - ============================================================
+2026-05-10 16:31:36,125 - test_technique_c_scalability - INFO - Starting test: num_sims_20
+Batched Self Play: 100% 48/48 [00:36<00:00,  1.33it/s]
+2026-05-10 16:32:12,234 - test_technique_c_scalability - INFO - Completed test: num_sims_20 - 36.05s
+2026-05-10 16:32:12,455 - test_technique_c_scalability - INFO - Sims 20: MCTS sims/sec=861, Games/sec=1.33, Time per game=0.751s
+2026-05-10 16:32:12,456 - test_technique_c_scalability - INFO - Starting test: num_sims_35
+Batched Self Play: 100% 48/48 [01:04<00:00,  1.35s/it]
+2026-05-10 16:33:17,421 - test_technique_c_scalability - INFO - Completed test: num_sims_35 - 64.89s
+2026-05-10 16:33:17,805 - test_technique_c_scalability - INFO - Sims 35: MCTS sims/sec=832, Games/sec=0.74, Time per game=1.352s
+2026-05-10 16:33:17,805 - test_technique_c_scalability - INFO - Starting test: num_sims_50
+Batched Self Play: 100% 48/48 [01:31<00:00,  1.91s/it]
+2026-05-10 16:34:49,416 - test_technique_c_scalability - INFO - Completed test: num_sims_50 - 91.54s
+2026-05-10 16:34:49,945 - test_technique_c_scalability - INFO - Sims 50: MCTS sims/sec=846, Games/sec=0.52, Time per game=1.907s
+2026-05-10 16:34:49,945 - test_technique_c_scalability - INFO - ============================================================
+2026-05-10 16:34:49,946 - test_technique_c_scalability - INFO - Testing board size scaling: (6, 8)
+2026-05-10 16:34:49,946 - test_technique_c_scalability - INFO - Configuration: num_games=32, batch_size=16, sims=20
+2026-05-10 16:34:49,946 - test_technique_c_scalability - INFO - ============================================================
+2026-05-10 16:34:49,946 - test_technique_c_scalability - INFO - Starting test: board_size_6x6
+Batched Self Play: 100% 32/32 [00:24<00:00,  1.32it/s]
+2026-05-10 16:35:14,205 - test_technique_c_scalability - INFO - Completed test: board_size_6x6 - 24.19s
+2026-05-10 16:35:14,358 - test_technique_c_scalability - INFO - Board 6x6: Games/sec=1.32, MCTS sims/sec=865, Peak memory=95.2MB
+2026-05-10 16:35:14,358 - test_technique_c_scalability - INFO - Starting test: board_size_8x8
+Batched Self Play: 100% 32/32 [00:58<00:00,  1.83s/it]
+2026-05-10 16:36:13,165 - test_technique_c_scalability - INFO - Completed test: board_size_8x8 - 58.68s
+2026-05-10 16:36:13,607 - test_technique_c_scalability - INFO - Board 8x8: Games/sec=0.55, MCTS sims/sec=659, Peak memory=120.2MB
+2026-05-10 16:36:13,607 - test_technique_c_scalability - INFO - 
+================================================================================
+2026-05-10 16:36:13,608 - test_technique_c_scalability - INFO - SCALABILITY TEST SUMMARY
+2026-05-10 16:36:13,608 - test_technique_c_scalability - INFO - ================================================================================
+2026-05-10 16:36:13,608 - test_technique_c_scalability - INFO - 
+BATCH_SIZE:
+2026-05-10 16:36:13,608 - test_technique_c_scalability - INFO - --------------------------------------------------------------------------------
+2026-05-10 16:36:13,608 - test_technique_c_scalability - INFO -                     24: Games/sec=    0.79, Time=   60.84s, Memory=   103.7MB
+2026-05-10 16:36:13,608 - test_technique_c_scalability - INFO -                     16: Games/sec=    0.73, Time=   65.38s, Memory=    95.2MB
+2026-05-10 16:36:13,608 - test_technique_c_scalability - INFO -                      8: Games/sec=    0.64, Time=   75.09s, Memory=    93.4MB
+2026-05-10 16:36:13,608 - test_technique_c_scalability - INFO - 
+NUM_GAMES:
+2026-05-10 16:36:13,608 - test_technique_c_scalability - INFO - --------------------------------------------------------------------------------
+2026-05-10 16:36:13,608 - test_technique_c_scalability - INFO -                     32: Games/sec=    0.75, Time=   42.87s, Memory=    95.2MB
+2026-05-10 16:36:13,608 - test_technique_c_scalability - INFO -                     48: Games/sec=    0.75, Time=   64.36s, Memory=    95.2MB
+2026-05-10 16:36:13,608 - test_technique_c_scalability - INFO -                     96: Games/sec=    0.74, Time=  130.15s, Memory=    95.2MB
+2026-05-10 16:36:13,608 - test_technique_c_scalability - INFO - 
+NUM_SIMS:
+2026-05-10 16:36:13,608 - test_technique_c_scalability - INFO - --------------------------------------------------------------------------------
+2026-05-10 16:36:13,608 - test_technique_c_scalability - INFO -                     20: Games/sec=    1.33, Time=   36.05s, Memory=    95.2MB
+2026-05-10 16:36:13,608 - test_technique_c_scalability - INFO -                     35: Games/sec=    0.74, Time=   64.89s, Memory=    95.2MB
+2026-05-10 16:36:13,608 - test_technique_c_scalability - INFO -                     50: Games/sec=    0.52, Time=   91.54s, Memory=    95.2MB
+2026-05-10 16:36:13,609 - test_technique_c_scalability - INFO - 
+BOARD_SIZE:
+2026-05-10 16:36:13,609 - test_technique_c_scalability - INFO - --------------------------------------------------------------------------------
+2026-05-10 16:36:13,609 - test_technique_c_scalability - INFO -                    6x6: Games/sec=    1.32, Time=   24.19s, Memory=    95.2MB
+2026-05-10 16:36:13,609 - test_technique_c_scalability - INFO -                    8x8: Games/sec=    0.55, Time=   58.68s, Memory=   120.2MB
+2026-05-10 16:36:13,609 - test_technique_c_scalability - INFO - Results saved to results/comprehensive/technique_c_scalability_20260510_163613.json
+
+Example 6: Memory-Constrained Testing
+------------------------------------------------------------
+2026-05-10 16:36:13,611 - test_technique_c_scalability - INFO - ============================================================
+2026-05-10 16:36:13,611 - test_technique_c_scalability - INFO - Testing batch size scaling: (2, 4, 8)
+2026-05-10 16:36:13,611 - test_technique_c_scalability - INFO - Configuration: num_games=24, sims=15, board_size=4
+2026-05-10 16:36:13,611 - test_technique_c_scalability - INFO - ============================================================
+2026-05-10 16:36:13,611 - test_technique_c_scalability - INFO - Starting test: batch_size_2
+Batched Self Play:   0% 0/24 [00:00<?, ?it/s]Error in example: Calculated padded input size per channel: (2 x 2). Kernel size: (3 x 3). Kernel size can't be greater than actual input size
+Traceback (most recent call last):
+  File "/content/Parallel-alpha-zero/alpha-zero-general-master/Parallel-alpha-zero/alpha-zero-general-master/example_technique_c_scalability.py", line 234, in <module>
+    example_fn()
+  File "/content/Parallel-alpha-zero/alpha-zero-general-master/Parallel-alpha-zero/alpha-zero-general-master/example_technique_c_scalability.py", line 159, in example_6_memory_constrained_testing
+    tester.test_batch_size_scaling(
+  File "/content/Parallel-alpha-zero/alpha-zero-general-master/Parallel-alpha-zero/alpha-zero-general-master/test_technique_c_scalability.py", line 64, in test_batch_size_scaling
+    result = self._run_scalability_test(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/content/Parallel-alpha-zero/alpha-zero-general-master/Parallel-alpha-zero/alpha-zero-general-master/test_technique_c_scalability.py", line 207, in _run_scalability_test
+    examples = worker.execute_batch(num_games)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/content/Parallel-alpha-zero/alpha-zero-general-master/Parallel-alpha-zero/alpha-zero-general-master/batched_selfplay.py", line 58, in execute_batch
+    return self._execute_games(num_games)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/content/Parallel-alpha-zero/alpha-zero-general-master/Parallel-alpha-zero/alpha-zero-general-master/batched_selfplay.py", line 131, in _execute_games
+    batch_pi, batch_v = self._batched_predict([request["board"] for request in unique_requests])
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/content/Parallel-alpha-zero/alpha-zero-general-master/Parallel-alpha-zero/alpha-zero-general-master/batched_selfplay.py", line 333, in _batched_predict
+    batch_pi, batch_v = self.model(batch)
+                        ^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/content/Parallel-alpha-zero/alpha-zero-general-master/Parallel-alpha-zero/alpha-zero-general-master/othello/pytorch/OthelloNNet.py", line 45, in forward
+    s = F.relu(self.bn4(self.conv4(s)))                          # batch_size x num_channels x (board_x-4) x (board_y-4)
+                        ^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/conv.py", line 553, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/conv.py", line 548, in _conv_forward
+    return F.conv2d(
+           ^^^^^^^^^
+RuntimeError: Calculated padded input size per channel: (2 x 2). Kernel size: (3 x 3). Kernel size can't be greater than actual input size
+Batched Self Play:   0% 0/24 [00:00<?, ?it/s]
+
+Example 7: Larger-Batch Tuning
+------------------------------------------------------------
+2026-05-10 16:36:13,667 - test_technique_c_scalability - INFO - ============================================================
+2026-05-10 16:36:13,667 - test_technique_c_scalability - INFO - Testing batch size scaling: (16, 24, 32, 48, 64)
+2026-05-10 16:36:13,667 - test_technique_c_scalability - INFO - Configuration: num_games=128, sims=50, board_size=6
+2026-05-10 16:36:13,667 - test_technique_c_scalability - INFO - ============================================================
+2026-05-10 16:36:13,667 - test_technique_c_scalability - INFO - Starting test: batch_size_16
+Batched Self Play: 100% 128/128 [04:09<00:00,  1.95s/it]
+2026-05-10 16:40:23,534 - test_technique_c_scalability - INFO - Completed test: batch_size_16 - 249.80s
+2026-05-10 16:40:24,880 - test_technique_c_scalability - INFO - Batch size 16: Throughput=0.51 games/sec, GPU batch size=12.51, Cache hit rate=12.25%
+2026-05-10 16:40:24,880 - test_technique_c_scalability - INFO - Starting test: batch_size_24
+Batched Self Play: 100% 128/128 [04:03<00:00,  1.90s/it]
+2026-05-10 16:44:28,193 - test_technique_c_scalability - INFO - Completed test: batch_size_24 - 243.24s
+2026-05-10 16:44:29,407 - test_technique_c_scalability - INFO - Batch size 24: Throughput=0.53 games/sec, GPU batch size=16.92, Cache hit rate=11.50%
+2026-05-10 16:44:29,407 - test_technique_c_scalability - INFO - Starting test: batch_size_32
+Batched Self Play: 100% 128/128 [03:49<00:00,  1.79s/it]
+2026-05-10 16:48:18,945 - test_technique_c_scalability - INFO - Completed test: batch_size_32 - 229.47s
+2026-05-10 16:48:20,157 - test_technique_c_scalability - INFO - Batch size 32: Throughput=0.56 games/sec, GPU batch size=25.53, Cache hit rate=10.77%
+2026-05-10 16:48:20,157 - test_technique_c_scalability - INFO - Starting test: batch_size_48
+Batched Self Play: 100% 128/128 [03:50<00:00,  1.80s/it]
+2026-05-10 16:52:10,631 - test_technique_c_scalability - INFO - Completed test: batch_size_48 - 230.41s
+2026-05-10 16:52:11,917 - test_technique_c_scalability - INFO - Batch size 48: Throughput=0.56 games/sec, GPU batch size=33.98, Cache hit rate=11.90%
+2026-05-10 16:52:11,917 - test_technique_c_scalability - INFO - Starting test: batch_size_64
+Batched Self Play: 100% 128/128 [03:41<00:00,  1.73s/it]
+2026-05-10 16:55:53,643 - test_technique_c_scalability - INFO - Completed test: batch_size_64 - 221.61s
+2026-05-10 16:55:54,855 - test_technique_c_scalability - INFO - Batch size 64: Throughput=0.58 games/sec, GPU batch size=52.30, Cache hit rate=10.44%
+2026-05-10 16:55:54,856 - test_technique_c_scalability - INFO - ============================================================
+2026-05-10 16:55:54,856 - test_technique_c_scalability - INFO - Testing MCTS simulations scaling: (35, 50, 75)
+2026-05-10 16:55:54,856 - test_technique_c_scalability - INFO - Configuration: num_games=96, batch_size=32, board_size=6
+2026-05-10 16:55:54,856 - test_technique_c_scalability - INFO - ============================================================
+2026-05-10 16:55:54,856 - test_technique_c_scalability - INFO - Starting test: num_sims_35
+Batched Self Play: 100% 96/96 [02:01<00:00,  1.27s/it]
+2026-05-10 16:57:56,565 - test_technique_c_scalability - INFO - Completed test: num_sims_35 - 121.65s
+2026-05-10 16:57:57,422 - test_technique_c_scalability - INFO - Sims 35: MCTS sims/sec=895, Games/sec=0.79, Time per game=1.267s
+2026-05-10 16:57:57,423 - test_technique_c_scalability - INFO - Starting test: num_sims_50
+Batched Self Play: 100% 96/96 [02:51<00:00,  1.79s/it]
+2026-05-10 17:00:48,905 - test_technique_c_scalability - INFO - Completed test: num_sims_50 - 171.42s
+2026-05-10 17:00:49,853 - test_technique_c_scalability - INFO - Sims 50: MCTS sims/sec=906, Games/sec=0.56, Time per game=1.786s
+2026-05-10 17:00:49,854 - test_technique_c_scalability - INFO - Starting test: num_sims_75
+Batched Self Play: 100% 96/96 [04:23<00:00,  2.74s/it]
+2026-05-10 17:05:13,165 - test_technique_c_scalability - INFO - Completed test: num_sims_75 - 263.25s
+2026-05-10 17:05:14,490 - test_technique_c_scalability - INFO - Sims 75: MCTS sims/sec=883, Games/sec=0.36, Time per game=2.742s
+2026-05-10 17:05:14,490 - test_technique_c_scalability - INFO - 
+================================================================================
+2026-05-10 17:05:14,490 - test_technique_c_scalability - INFO - SCALABILITY TEST SUMMARY
+2026-05-10 17:05:14,491 - test_technique_c_scalability - INFO - ================================================================================
+2026-05-10 17:05:14,491 - test_technique_c_scalability - INFO - 
+BATCH_SIZE:
+2026-05-10 17:05:14,491 - test_technique_c_scalability - INFO - --------------------------------------------------------------------------------
+2026-05-10 17:05:14,491 - test_technique_c_scalability - INFO -                     64: Games/sec=    0.58, Time=  221.61s, Memory=   127.3MB
+2026-05-10 17:05:14,491 - test_technique_c_scalability - INFO -                     32: Games/sec=    0.56, Time=  229.47s, Memory=   105.4MB
+2026-05-10 17:05:14,491 - test_technique_c_scalability - INFO -                     48: Games/sec=    0.56, Time=  230.41s, Memory=   117.0MB
+2026-05-10 17:05:14,491 - test_technique_c_scalability - INFO -                     24: Games/sec=    0.53, Time=  243.24s, Memory=   103.7MB
+2026-05-10 17:05:14,491 - test_technique_c_scalability - INFO -                     16: Games/sec=    0.51, Time=  249.80s, Memory=    95.2MB
+2026-05-10 17:05:14,491 - test_technique_c_scalability - INFO - 
+NUM_SIMS:
+2026-05-10 17:05:14,491 - test_technique_c_scalability - INFO - --------------------------------------------------------------------------------
+2026-05-10 17:05:14,491 - test_technique_c_scalability - INFO -                     35: Games/sec=    0.79, Time=  121.65s, Memory=   105.4MB
+2026-05-10 17:05:14,491 - test_technique_c_scalability - INFO -                     50: Games/sec=    0.56, Time=  171.42s, Memory=   105.4MB
+2026-05-10 17:05:14,491 - test_technique_c_scalability - INFO -                     75: Games/sec=    0.36, Time=  263.25s, Memory=   105.4MB
+2026-05-10 17:05:14,492 - test_technique_c_scalability - INFO - Results saved to results/larger_batch_tuning/technique_c_scalability_20260510_170514.json
