@@ -83,7 +83,8 @@ class BatchedSelfPlayWorker:
         }
 
     def _execute_games(self, num_games):
-        slot_count = min(BATCH_SIZE, num_games)
+        batch_size = int(getattr(self.args, "batchSize", BATCH_SIZE))
+        slot_count = min(batch_size, num_games)
         boards = [None] * slot_count
         cur_players = [1] * slot_count
         game_examples = [[] for _ in range(slot_count)]

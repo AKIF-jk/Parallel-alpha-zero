@@ -46,7 +46,7 @@ class TechniqueCScalabilityTester:
     
     def __init__(self, output_dir='scalability_results'):
         self.output_dir = Path(output_dir)
-        self.output_dir.mkdir(exist_ok=True)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
         self.results = []
         
     def test_batch_size_scaling(self, 
@@ -172,6 +172,8 @@ class TechniqueCScalabilityTester:
             profiler.gpu_calls_per_iter = []
             profiler.avg_gpu_batch_size = []
             profiler.avg_virtual_loss_collisions_avoided = []
+            profiler.reset_mcts_sim()
+            profiler.reset_gpu_batch_stats()
         
         # Setup game and neural network
         g = Game(board_size)
@@ -188,7 +190,8 @@ class TechniqueCScalabilityTester:
             'nnCacheMaxSize': 500000,
             'terminalCacheMaxSize': 250000,
             'actionArrayPoolSize': 512,
-            'BATCH_SIZE': batch_size,
+            'tempThreshold': 15,
+            'batchSize': batch_size,
         })
         
         # Create batched self-play worker
@@ -199,13 +202,9 @@ class TechniqueCScalabilityTester:
         
         start_time = time.perf_counter()
         
-        # Execute batched self-play
-        try:
-            examples = worker.execute_games(num_games, batch_size=batch_size)
-        except AttributeError:
-            # If execute_games doesn't exist, simulate with manual play
-            log.warning("execute_games not found, using simulated playback")
-            examples = self._simulate_games(worker, num_games, batch_size)
+        # Execute real batched self-play. Do not fall back to dummy playback;
+        # invalid benchmarks are worse than failed benchmarks.
+        examples = worker.execute_batch(num_games)
         
         elapsed_time = time.perf_counter() - start_time
         
@@ -234,17 +233,18 @@ class TechniqueCScalabilityTester:
             'cache_misses': getattr(worker, 'cache_misses', 0),
             'cache_hit_rate': getattr(worker, 'cache_hits', 0) / max(getattr(worker, 'cache_hits', 0) + getattr(worker, 'cache_misses', 1), 1),
             'virtual_loss_diversions': getattr(worker, 'virtual_loss_diversions', 0),
+            'examples_generated': len(examples),
         }
+
+        if result['total_mcts_sims'] <= 0 or result['avg_gpu_batch_size'] <= 0:
+            raise RuntimeError(
+                f"{name} produced invalid metrics: "
+                f"mcts_sims={result['total_mcts_sims']}, "
+                f"avg_gpu_batch_size={result['avg_gpu_batch_size']:.2f}"
+            )
         
         log.info(f"Completed test: {name} - {elapsed_time:.2f}s")
         return result
-    
-    def _simulate_games(self, worker, num_games, batch_size):
-        """Simulate games if execute_games is not available."""
-        examples = []
-        for _ in range(num_games):
-            examples.append(None)
-        return examples
     
     def save_results(self):
         """Save results to JSON file."""
